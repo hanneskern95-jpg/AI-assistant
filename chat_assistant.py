@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import gradio as gr
 
-from tools.tools.spotify_playlist_creator import SpotifyTool
+from tools import create_tools
 
 
 MODEL = "gpt-4o-mini"
@@ -24,9 +24,8 @@ class assistant:
         self.openai = OpenAI()
         self.system_message = "You are an AI assistant."
 
-        self.tools = {
-            "create_spotify_playlist": SpotifyTool(MODEL_SEARCH, self.openai)
-        }
+        self.tools = create_tools(model = MODEL_SEARCH, openai = self.openai)
+        print(self.tools)
         self.tool_dicts = [{"type": "function", "function": tool.tool_dict} for tool in self.tools.values()]
 
 

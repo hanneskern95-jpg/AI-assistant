@@ -1,0 +1,63 @@
+[project]
+name = "chat-assistant"
+version = "0.1.0"
+description = "A local chat assistant using OpenAI, Gradio, and custom tools."
+authors = [
+    { name = "Hannes Kern", email = "hann.k@web.de" }
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "openai>=1.0",
+    "gradio>=4.0",
+    "python-dotenv>=1.0",
+    "spotipy>=2.0.0"
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+
+#########################
+# Ruff Configuration
+#########################
+
+[tool.ruff]
+# Apply Ruff to everything *except* venv and build artifacts
+exclude = [
+    "venv",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+]
+
+line-length = 200
+target-version = "py311"
+
+# Enable Ruff’s linter, formatter, and import sorter
+extend-select = [
+    "E",     # pycodestyle
+    "F",     # pyflakes
+    "I",     # isort (import sorting)
+    "N",     # pep8 naming
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear
+    "A",     # flake8-builtins
+    "COM",   # flake8-commas
+    "C4",    # flake8-comprehensions
+    "ANN",   # Enforce function/method type hints
+    "TC",    # TYPE_CHECKING usage
+    "RUF",   # Ruff-specific rules
+]
+
+[tool.ruff.format]
+indent-style = "space"
+quote-style = "double"
+skip-magic-trailing-comma = false
+
+[tool.ruff.isort]
+known-first-party = ["tools"]
+combine-as-imports = true
+force-sort-within-sections = true

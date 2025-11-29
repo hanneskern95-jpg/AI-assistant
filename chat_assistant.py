@@ -1,20 +1,20 @@
 import json
 import os
+
 from dotenv import load_dotenv
-from openai import OpenAI
 import gradio as gr
+from openai import OpenAI
 
 from tools import create_tools
-
 
 MODEL = "gpt-4o-mini"
 MODEL_SEARCH = "gpt-4o-mini"
 
 
-class assistant:
+class Assistant:
     load_dotenv(override=True)
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.openai_api_key = os.getenv('OPENAI_API_KEY')
         if self.openai_api_key:
             print(f"OpenAI API Key exists and begins {self.openai_api_key[:8]}")
@@ -42,11 +42,11 @@ class assistant:
                         "id": tool_call.id,
                         "function": {
                             "name": function_name,
-                            "arguments": arguments
+                            "arguments": arguments,
                         },
-                        "type": tool_call.type
-                    }
-                ]
+                        "type": tool_call.type,
+                    },
+                ],
         })
 
         tool_answer = self.tools[function_name].run_tool(**arguments)
@@ -57,21 +57,21 @@ class assistant:
 
     def chat_with_tool(self, message, history):
         history.append({"role": "user", "content": message})
-        messages = [{"role": "system", "content": self.system_message}] + history
+        messages = [{"role": "system", "content": self.system_message}, *history]
         response = self.openai.chat.completions.create(model=MODEL, messages=messages, tools=self.tool_dicts)
         
         if response.choices[0].finish_reason=="tool_calls":
-            answer = self.handle_tools(response.choices[0].message, history)
+            self.handle_tools(response.choices[0].message, history)
         else:
             history.append({"role":"assistant", "content":response.choices[0].message.content})
 
         return "", history
 
 
-    def start_chat_assistant(self):
+    def start_chat_assistant(self) -> None:
         with gr.Blocks() as ui:
             with gr.Row():
-                chatbot = gr.Chatbot(height=500, type="messages")
+                chatbot = gr.Chatbot(height=500)
             with gr.Row():
                 entry = gr.Textbox(label="Chat with our AI Assistant:")
             entry.submit(self.chat_with_tool, inputs=[entry, chatbot], outputs=[entry, chatbot])
@@ -80,5 +80,5 @@ class assistant:
     
 if __name__ == '__main__':
 
-    chat_assistant = assistant()
+    chat_assistant = Assistant()
     chat_assistant.start_chat_assistant()

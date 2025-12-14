@@ -44,11 +44,12 @@ class WikipediaFactCheckerTool(Tool):
 
     def _create_answer(self, answer_dict) -> str:
         if answer_dict["article_answers_question"] == "NoArticleFound":
-            return "No relevant Wikipedia article found to answer the question."
+            answer = "No relevant Wikipedia article found to answer the question."
         elif answer_dict["article_answers_question"] == "Inconclusive":
-            return f"Found a Wikipedia article but it does not conclusively answer the question. \nClosest Answer: {answer_dict['answer']}\nLink: {answer_dict['wikipedia_link']}"
+            answer = f"Found a Wikipedia article but it does not conclusively answer the question. \nClosest Answer: {answer_dict['answer']}\nLink: {answer_dict['wikipedia_link']}"
         else:
-            return f"{answer_dict['answer']}\nSource: {answer_dict['wikipedia_link']}"
+            answer = f"{answer_dict['answer']}\nSource: {answer_dict['wikipedia_link']}"
+        return {"content_str": answer}
 
 
     def run_tool(self, question):

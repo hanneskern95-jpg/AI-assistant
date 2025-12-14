@@ -1,5 +1,5 @@
 import json
-from ..tool import Tool
+from ..tool import Tool, ToolDict
 import re
 
 class RecipeSuggestTool(Tool):
@@ -35,10 +35,10 @@ class RecipeSuggestTool(Tool):
         answer =  ""
         for index, recipe in enumerate(self._sugested_recipes):
             answer += f"Recipe {index+1}: {recipe['title']} \n\n"
-            answer += recipe["description_and_advertsiment"]
+            answer += recipe["description_and_advertisment"]
             if index+1 < len(self._sugested_recipes):
                 answer += "\n\n"
-        return answer
+        return {"content_str": answer}
     
 
     def _clean_up_str(self, raw_str: str) -> str:
@@ -65,9 +65,9 @@ class RecipeSuggestTool(Tool):
                         "  'link': string,\n"
                         "  'ingredients': [string, ...],\n"
                         "  'instructions': string\n"
-                        "   'description_and_advertsiment': string   // A short advertisment of the meal. It needs to contain a description of the meal and the reason, why it fits the user prompt.\n"
+                        "   'description_and_advertisment': string   // A short advertisment of the meal. It needs to contain a description of the meal and the reason, why it fits the user prompt.\n"
                         "}\n\n"
-                        "The 'description_and_advertsiment' field should be one concise paragraph describing the meal, explaining the match and advertising the meal to the user. Try to sell each recipe to the user."
+                        "The 'description_and_advertisment' field should be one concise paragraph describing the meal, explaining the match and advertising the meal to the user. Try to sell each recipe to the user."
                         "Do not include commentary. Do not include markdown. Only return valid JSON."
                     )
                 }

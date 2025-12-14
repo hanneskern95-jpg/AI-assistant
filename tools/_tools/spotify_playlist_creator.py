@@ -44,7 +44,7 @@ class SpotifyTool(Tool):
         answer =  f"Created PLaylist with name '{song_dict['name']}' with the following songs:"
         for song in song_dict["songs"]:
             answer += f"\n{song['name']} - {song['artist']}"
-        return answer
+        return {"content_str": answer}
 
 
     def run_tool(self, description_playlist, use_liked_songs = False, liked_songs_description = ""):

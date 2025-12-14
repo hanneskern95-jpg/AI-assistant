@@ -3,3 +3,4 @@ openai
 gradio>=6.0.0
 spotipy
 bs4
+streamlit

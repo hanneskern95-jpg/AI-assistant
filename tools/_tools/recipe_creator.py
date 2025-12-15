@@ -1,6 +1,7 @@
 import json
-from ..tool import Tool, ToolDict
+from ..tool import Tool, AnswerDict
 import re
+import streamlit as st
 
 class RecipeSuggestTool(Tool):
 
@@ -28,21 +29,60 @@ class RecipeSuggestTool(Tool):
         self._system_prompt = "You are an AI assisstant searching healthy and tasty recipes on the website Chefkoch.de and suggesting them to the user. Always aim to present high rated recipes."
         self._model = model
         self._openai = openai
-        self._sugested_recipes = None
 
 
-    def create_answer(self):
+    def create_answer(self, suggested_recipes: list[dict]) -> AnswerDict:
         answer =  ""
-        for index, recipe in enumerate(self._sugested_recipes):
+        for index, recipe in enumerate(suggested_recipes):
             answer += f"Recipe {index+1}: {recipe['title']} \n\n"
             answer += recipe["description_and_advertisment"]
-            if index+1 < len(self._sugested_recipes):
+            if index+1 < len(suggested_recipes):
                 answer += "\n\n"
-        return {"content_str": answer}
+        return {
+            "answer_str": answer,
+            "recipes": suggested_recipes,
+            }
     
 
     def _clean_up_str(self, raw_str: str) -> str:
         return re.sub(r"^```(?:json)?|```$", "", raw_str.strip(), flags=re.MULTILINE).strip()
+
+
+    def _add_tabbed_object(self, answer: AnswerDict) -> None:
+        st.session_state["pinned_object"] = {
+            "function_name": self.tool_dict["name"],
+            "AnswerDict": answer,
+        }
+
+
+    def _render_recipe(self, recipe: dict, index: int | None) -> st.delta_generator.DeltaGenerator:
+        st.markdown(f"### Recipe {''+str(index+1) if index else ''}: {recipe['title']}")
+        st.markdown(recipe["description_and_advertisment"])
+        with st.expander("ingredients", expanded=False):
+            for ingredient in recipe['ingredients']:
+                st.markdown(f"- {ingredient}")
+        with st.expander("instructions", expanded=False):
+            for index, instruction in enumerate(recipe['instructions']):
+                st.markdown(f"**Step {index+1}:**")
+                st.markdown(instruction)
+        column_button, column_link = st.columns(2)
+        with column_link:
+            st.markdown(f"[View Recipe Online]({recipe['link']})")
+        return column_button
+
+
+    def render_answer(self, answer: AnswerDict) -> None:
+        recipes = answer.get("recipes", [])
+        if not isinstance(recipes, list) or len(recipes) == 0:
+            raise ValueError("No recipes found in the answer.")
+        for index, recipe in enumerate(recipes):
+            column_button = self._render_recipe(recipe, index)
+            with column_button:
+                st.button("Pin to chat", on_click=lambda rec=recipe: self._add_tabbed_object(rec), key=f"pin_recipe_{recipe['title']}_{index}")
+
+    
+    def render_pinned_object(self, recipe) -> None:
+        self._render_recipe(recipe, None)
 
 
     def run_tool(self, description_recipe):
@@ -64,19 +104,20 @@ class RecipeSuggestTool(Tool):
                         "  'title': string,\n"
                         "  'link': string,\n"
                         "  'ingredients': [string, ...],\n"
-                        "  'instructions': string\n"
+                        "  'instructions': [string,...],\n"
                         "   'description_and_advertisment': string   // A short advertisment of the meal. It needs to contain a description of the meal and the reason, why it fits the user prompt.\n"
                         "}\n\n"
-                        "The 'description_and_advertisment' field should be one concise paragraph describing the meal, explaining the match and advertising the meal to the user. Try to sell each recipe to the user."
+                        "The 'description_and_advertisment' field should be one concise paragraph describing the meal, explaining the match and advertising the meal to the user."
+                        "Try to sell each recipe to the user."
                         "Do not include commentary. Do not include markdown. Only return valid JSON."
-                    )
-                }
-            ]
+                    ),
+                },
+            ],
         )
         recipe_list_str = response.output[1].content[0].text
         try:
-            self._sugested_recipes = json.loads(self._clean_up_str(recipe_list_str))
+            suggested_recipes = json.loads(self._clean_up_str(recipe_list_str))
         except json.decoder.JSONDecodeError:
             return "could not convert the following string into a dictionary:\n\n"+response.output[1].content[0].text
 
-        return self.create_answer()
+        return self.create_answer(suggested_recipes)

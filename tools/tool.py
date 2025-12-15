@@ -19,14 +19,22 @@ class ToolDict(TypedDict):
     parameters: dict
 
 
+class AnswerDict(TypedDict):
+    answer_str: str
+
+
 class Tool(metaclass=AutoRegister):
 
     tool_dict: ToolDict
 
 
-    def run_tool(self, kwargs) -> dict:
+    def run_tool(self, kwargs) -> AnswerDict:
         raise NotImplementedError("Subclasses must implement run_tool")
         
     
-    def render_answer(self, answer: dict) -> None:
-        st.markdown(answer["content_str"])
+    def render_answer(self, answer: AnswerDict) -> None:
+        st.markdown(answer["answer_str"])
+
+
+    def render_pinned_object(self, answer: AnswerDict) -> None:
+        st.markdown(answer["answer_str"])

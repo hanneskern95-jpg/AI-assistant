@@ -10,14 +10,23 @@ def show_chat() -> None:
         st.session_state.chat_assistant.chat_with_tool(prompt)
 
     #Display chat history
-    messages_to_display = [message for message in st.session_state.chat_assistant.history if message["role"] in ["user", "assistant", "tool"] and "tool_calls" not in message]
-    for message in messages_to_display:
-        with st.chat_message(message["role"]):
-            st.session_state.chat_assistant.render_answer(message)
-    print(messages_to_display)
+    chat, pinned_object = st.tabs(["Chat", "Pinned Object"])
+    with chat:
+        messages_to_display = [message for message in st.session_state.chat_assistant.history if message["role"] in ["user", "assistant", "tool"] and "tool_calls" not in message]
+        for message in messages_to_display:
+            with st.chat_message(message["role"]):
+                st.session_state.chat_assistant.render_answer(message)
+
+    with pinned_object:
+        if st.session_state["pinned_object"] is None:
+            st.markdown("No pinned object yet. Pin an object from the chat!")
+        else:
+            st.session_state.chat_assistant.render_pinned_object(st.session_state["pinned_object"])
 
 
 if __name__ == "__main__":
     if "chat_assistant" not in st.session_state:
         st.session_state["chat_assistant"] = Assistant()
+    if "pinned_object" not in st.session_state:
+        st.session_state["pinned_object"] = None
     show_chat()

@@ -17,16 +17,13 @@ class Assistant:
 
     def __init__(self) -> None:
         self.openai_api_key = os.getenv('OPENAI_API_KEY')
-        if self.openai_api_key:
-            print(f"OpenAI API Key exists and begins {self.openai_api_key[:8]}")
-        else:
+        if not self.openai_api_key:
             print("OpenAI API Key not set")
             
         self.openai = OpenAI()
         self.system_message = "You are an AI assistant."
 
         self.tools = create_tools(model = MODEL_SEARCH, openai = self.openai)
-        print(self.tools)
         self.tool_dicts = [{"type": "function", "function": tool.tool_dict} for tool in self.tools.values()]
         # Conversation history stored as an attribute on the Assistant instance
         # It's a list of OpenAI-style message dicts: {"role": ..., "content": ...}
@@ -90,6 +87,11 @@ class Assistant:
         if message["role"] == "tool":
             tool = self.tools[message["tool_name"]]
             tool.render_answer(message["tool_answer"])
+
+    
+    def render_pinned_object(self, pinned_object: dict) -> None:
+        tool = self.tools[pinned_object["function_name"]]
+        tool.render_pinned_object(pinned_object["AnswerDict"])
 
 
     def start_chat_assistant(self) -> None:

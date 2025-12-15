@@ -1,5 +1,5 @@
 import json
-from ..tool import Tool
+from ..tool import Tool, AnswerDict
 import re
 
 
@@ -42,14 +42,14 @@ class WikipediaFactCheckerTool(Tool):
         return re.sub(r"^```(?:json)?|```$", "", raw_str.strip(), flags=re.MULTILINE).strip()
 
 
-    def _create_answer(self, answer_dict) -> str:
+    def _create_answer(self, answer_dict) -> AnswerDict:
         if answer_dict["article_answers_question"] == "NoArticleFound":
             answer = "No relevant Wikipedia article found to answer the question."
         elif answer_dict["article_answers_question"] == "Inconclusive":
             answer = f"Found a Wikipedia article but it does not conclusively answer the question. \nClosest Answer: {answer_dict['answer']}\nLink: {answer_dict['wikipedia_link']}"
         else:
             answer = f"{answer_dict['answer']}\nSource: {answer_dict['wikipedia_link']}"
-        return {"content_str": answer}
+        return {"answer_str": answer}
 
 
     def run_tool(self, question):

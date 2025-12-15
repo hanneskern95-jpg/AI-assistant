@@ -1,6 +1,6 @@
 import json
 from ..utils.spotify import create_playlist, catch_liked_songs
-from ..tool import Tool
+from ..tool import Tool, AnswerDict
 
 class SpotifyTool(Tool):
 
@@ -40,11 +40,11 @@ class SpotifyTool(Tool):
         self._song_list = None
 
 
-    def create_answer(self, song_dict):
+    def create_answer(self, song_dict) -> AnswerDict:
         answer =  f"Created PLaylist with name '{song_dict['name']}' with the following songs:"
         for song in song_dict["songs"]:
             answer += f"\n{song['name']} - {song['artist']}"
-        return {"content_str": answer}
+        return {"answer_str": answer}
 
 
     def run_tool(self, description_playlist, use_liked_songs = False, liked_songs_description = ""):

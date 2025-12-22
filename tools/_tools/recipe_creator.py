@@ -2,6 +2,7 @@ import json
 from ..tool import Tool, AnswerDict
 import re
 import streamlit as st
+import streamlit_notify as stn
 
 class RecipeSuggestTool(Tool):
 
@@ -49,6 +50,7 @@ class RecipeSuggestTool(Tool):
 
 
     def _add_tabbed_object(self, answer: AnswerDict) -> None:
+        stn.toast("Recipe pinned!", duration=3, icon="📌")
         st.session_state["pinned_object"] = {
             "function_name": self.tool_dict["name"],
             "AnswerDict": answer,
@@ -74,7 +76,7 @@ class RecipeSuggestTool(Tool):
     def render_answer(self, answer: AnswerDict) -> None:
         recipes = answer.get("recipes", [])
         if not isinstance(recipes, list) or len(recipes) == 0:
-            raise ValueError("No recipes found in the answer.")
+            st.markdown(answer.get("answer_str", "No recipes found."))
         for index, recipe in enumerate(recipes):
             column_button = self._render_recipe(recipe, index)
             with column_button:
@@ -118,6 +120,9 @@ class RecipeSuggestTool(Tool):
         try:
             suggested_recipes = json.loads(self._clean_up_str(recipe_list_str))
         except json.decoder.JSONDecodeError:
-            return "could not convert the following string into a dictionary:\n\n"+response.output[1].content[0].text
+            return {
+                "answer_str": "could not convert the following string into a dictionary:\n\n"+response.output[1].content[0].text,
+                "recipes": [],
+                }
 
         return self.create_answer(suggested_recipes)

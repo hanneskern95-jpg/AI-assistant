@@ -1,9 +1,12 @@
 import streamlit as st
 from chat_assistant import Assistant
+import streamlit_notify as stn
 
 
 def show_chat() -> None:
-    
+
+    stn.notify()
+
     #read prompt
     prompt = st.chat_input("Type your message here.")
     if prompt:

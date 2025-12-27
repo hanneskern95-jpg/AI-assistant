@@ -58,12 +58,12 @@ class RecipeSuggestTool(Tool):
 
 
     def _render_recipe(self, recipe: dict, index: int | None) -> st.delta_generator.DeltaGenerator:
-        st.markdown(f"### Recipe {''+str(index+1) if index else ''}: {recipe['title']}")
+        st.markdown(f"### Rezept {''+str(index+1) if index else ''}: {recipe['title']}")
         st.markdown(recipe["description_and_advertisment"])
-        with st.expander("ingredients", expanded=False):
+        with st.expander("Zutaten", expanded=False):
             for ingredient in recipe['ingredients']:
                 st.markdown(f"- {ingredient}")
-        with st.expander("instructions", expanded=False):
+        with st.expander("Anleitung", expanded=False):
             for index, instruction in enumerate(recipe['instructions']):
                 st.markdown(f"**Step {index+1}:**")
                 st.markdown(instruction)

@@ -1,7 +1,8 @@
-import streamlit as st
-from chat_assistant import Assistant
-import streamlit_notify as stn
 import speech_recognition as sr
+import streamlit as st
+import streamlit_notify as stn
+
+from chat_assistant import Assistant
 
 
 def switch_input_mode() -> None:
@@ -45,7 +46,7 @@ def show_chat() -> None:
                         with sr.AudioFile(prompt_audio) as source:
                             audio = recognizer.record(source)
                         try:
-                            prompt = recognizer.recognize_google(audio, language=language_tag)
+                            prompt = recognizer.recognize_google(audio, language=language_tag) # type: ignore
                         except sr.UnknownValueError:
                             st.warning("Audio not recognized.")
                         except sr.RequestError as e:

@@ -1,5 +1,5 @@
 [project]
-name = "chat-assistant"
+name = "chat_assistant"
 version = "0.1.0"
 description = "A local chat assistant using OpenAI, Gradio, and custom tools."
 authors = [

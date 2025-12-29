@@ -1,11 +1,14 @@
 import json
-from ..tool import Tool, AnswerDict
 import re
+
+from openai import OpenAI
+
+from ..tool import AnswerDict, Tool
 
 
 class WikipediaFactCheckerTool(Tool):
 
-    def __init__(self, model, openai):
+    def __init__(self, model: str, openai: OpenAI) -> None:
         self.tool_dict = {
             "type": "function",
             "name": "check_fact_wikipedia",
@@ -17,8 +20,9 @@ class WikipediaFactCheckerTool(Tool):
                 "'is it true that...', or explicitly requests a Wikipedia source. Non-triggers: routine knowledge queries, "
                 "conversational replies, or operational instructions. When called, return ONLY the JSON described in the schema below. "
                 "JSON format expected: {\n  'answer': string|null,\n  'wikipedia_link': string|null,\n  'article_answers_question': 'Yes'|'Inconclusive'|'NoArticleFound'\n}\n\n"
-                "Definitions: 'Yes' — the located Wikipedia article directly and conclusively answers the user's question (the article contains a clear statement or verifiable data that addresses the claim). "
-                "'Inconclusive' — a relevant Wikipedia article exists but it does not directly or clearly answer the user's specific question; the article may be related or provide partial information. "
+                "Definitions:"
+                "'Yes' — the located Wikipedia article directly and conclusively answers the user's question (the article contains a clear statement or verifiable data that addresses the claim). "
+                "'Inconclusive' — a relevant Wikipedia article exists but it does not directly or clearly answer the user's question; the article may be related or provide partial information."
                 "'NoArticleFound' — no relevant Wikipedia article could be found for the query."
             ),
             "parameters": {
@@ -31,7 +35,7 @@ class WikipediaFactCheckerTool(Tool):
                 },
                 "required": ["question"],
                 "additionalProperties": False,
-            }
+            },
         }
         self._system_prompt = "You are an AI assistant that fact-checks information using Wikipedia. Your task is to search for relevant Wikipedia articles and provide accurate answers based on them."
         self._model = model
@@ -42,7 +46,7 @@ class WikipediaFactCheckerTool(Tool):
         return re.sub(r"^```(?:json)?|```$", "", raw_str.strip(), flags=re.MULTILINE).strip()
 
 
-    def _create_answer(self, answer_dict) -> AnswerDict:
+    def _create_answer(self, answer_dict: dict) -> AnswerDict:
         if answer_dict["article_answers_question"] == "NoArticleFound":
             answer = "No relevant Wikipedia article found to answer the question."
         elif answer_dict["article_answers_question"] == "Inconclusive":
@@ -52,7 +56,7 @@ class WikipediaFactCheckerTool(Tool):
         return {"answer_str": answer}
 
 
-    def run_tool(self, question):
+    def run_tool(self, question: str) -> AnswerDict:
         response = self._openai.responses.create(
             model=self._model,
             tools=[{"type": "web_search"}],
@@ -67,12 +71,14 @@ class WikipediaFactCheckerTool(Tool):
                         "{\n"
                         "  'answer': string,  // The answer to the question based on the Wikipedia article, or null if no article found. This should be a full sentence.\n"
                         "  'wikipedia_link': string,  // The URL link to the Wikipedia article, or null if no article found\n"
-                        "  'article_answers_question': string  // One of: 'Yes' (article conclusively answers the question), 'Inconclusive' (article exists but doesn't conclusively answer), or 'NoArticleFound' (no Wikipedia article found)\n"
+                        "  'article_answers_question': string  // One of: 'Yes' (article conclusively answers the question),"
+                        "       'Inconclusive' (article exists but doesn't conclusively answer)," 
+                        "       or 'NoArticleFound' (no Wikipedia article found)\n"
                         "}\n\n"
                         "Do not include commentary. Do not include markdown. Only return valid JSON."
-                    )
-                }
-            ]
+                    ),
+                },
+            ],
         )
         
         result_str = response.output[1].content[0].text
@@ -83,7 +89,7 @@ class WikipediaFactCheckerTool(Tool):
                 "answer": None,
                 "wikipedia_link": None,
                 "article_answers_question": "NoArticleFound",
-                "error": "Could not parse response: " + result_str
+                "error": "Could not parse response: " + result_str,
             })
 
         return self._create_answer(self._result)

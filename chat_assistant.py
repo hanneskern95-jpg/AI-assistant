@@ -2,11 +2,12 @@ import json
 import os
 
 from dotenv import load_dotenv
-import gradio as gr
 from openai import OpenAI
+from openai.types.chat import ChatCompletionMessage
+from openai.types.chat.chat_completion_message_function_tool_call import ChatCompletionMessageFunctionToolCall
 import streamlit as st
 
-from tools import create_tools
+from tools import AnswerDict, create_tools
 
 MODEL = "gpt-4o-mini"
 MODEL_SEARCH = "gpt-4o-mini"
@@ -23,24 +24,36 @@ class Assistant:
         self.openai = OpenAI()
         self.system_message = "You are an AI assistant."
 
-        self.tools = create_tools(model = MODEL_SEARCH, openai = self.openai)
+        self.tools = create_tools(model = MODEL_SEARCH, openai = self.openai) # type: ignore
         self.tool_dicts = [{"type": "function", "function": tool.tool_dict} for tool in self.tools.values()]
         # Conversation history stored as an attribute on the Assistant instance
         # It's a list of OpenAI-style message dicts: {"role": ..., "content": ...}
         self.history: list[dict] = []
 
 
-    def handle_tools(self, message):
+    def get_attributes_from_tool_call_message(self, message: ChatCompletionMessage) -> tuple[ChatCompletionMessageFunctionToolCall | None, str, dict, str]:
+        if not message.tool_calls:
+            st.error("No tool call found in the message.")
+            return None, "", {}, ""
+        
+        tool_call = message.tool_calls[0]
+        if not hasattr(tool_call, 'function') or not tool_call.function: # type: ignore
+            st.error("No tool call found in the message.")
+            return None, "", {}, ""
+        
+        arguments_str = tool_call.function.arguments # type: ignore
+        return tool_call, tool_call.function.name, json.loads(arguments_str), arguments_str # type: ignore
+
+
+    def handle_tools(self, message: ChatCompletionMessage) -> AnswerDict:
         """Handle a tool call contained in `message` and update self.history.
 
         The method reads the first tool call, appends the tool call metadata to
         history, runs the tool, then appends the tool output to history.
         """
-        tool_call = message.tool_calls[0]
-        function_name = tool_call.function.name
-        arguments_str = tool_call.function.arguments
-        arguments = json.loads(arguments_str)
-
+        tool_call, function_name, arguments, arguments_str = self.get_attributes_from_tool_call_message(message)
+        if tool_call is None:
+            return {"answer_str": "Error: No tool call found."}
         self.history.append({
                 "role": "assistant",
                 "content": "",
@@ -61,7 +74,7 @@ class Assistant:
         return tool_answer
 
 
-    def chat_with_tool(self, message):
+    def chat_with_tool(self, message: ChatCompletionMessage) -> tuple[str, list[dict]]:
         """Receive a user message, call the model (and tools if needed),
         and update self.history. Returns values to update the Gradio UI:
         (cleared_input, updated_chatbot_value).
@@ -69,7 +82,7 @@ class Assistant:
         # Append the user message to the shared history attribute
         self.history.append({"role": "user", "content": message})
         messages = [{"role": "system", "content": self.system_message}, *self.history]
-        response = self.openai.chat.completions.create(model=MODEL, messages=messages, tools=self.tool_dicts)
+        response = self.openai.chat.completions.create(model=MODEL, messages=messages, tools=self.tool_dicts)  # type: ignore
 
         if response.choices[0].finish_reason == "tool_calls":
             self.handle_tools(response.choices[0].message)
@@ -92,23 +105,3 @@ class Assistant:
     def render_pinned_object(self, pinned_object: dict) -> None:
         tool = self.tools[pinned_object["function_name"]]
         tool.render_pinned_object(pinned_object["AnswerDict"])
-
-
-    def start_chat_assistant(self) -> None:
-        with gr.Blocks() as ui:
-            with gr.Row():
-                # Initialize the Chatbot's displayed value from self.history
-                chatbot = gr.Chatbot(value=self.history, height=500)
-            with gr.Row():
-                entry = gr.Textbox(label="Chat with our AI Assistant:")
-            # Only pass the Textbox input to the function; the function uses
-            # self.history internally and returns it as the Chatbot output.
-            entry.submit(self.chat_with_tool, inputs=[entry], outputs=[entry, chatbot])
-
-        ui.launch(inbrowser=True)
-
-    
-if __name__ == '__main__':
-
-    chat_assistant = Assistant()
-    chat_assistant.start_chat_assistant()

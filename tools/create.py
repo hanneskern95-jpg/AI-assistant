@@ -1,20 +1,22 @@
-from .tool import registry   # registry is filled after _tools is imported
 import inspect
+from typing import Any
+
+from .tool import Tool, registry  # registry is filled after _tools is imported
 
 
-def get_subkwargs(kwargs: dict, keys: list[str]):
+def _get_subkwargs(kwargs: dict, keys: list[str]) -> dict:
     return {key:kwargs[key] for key in keys}
 
 
-def get_attributes(class_to_inspect):
-    return [key for key in inspect.signature(class_to_inspect).parameters]
+def _get_attributes(class_to_inspect: type[Tool]) -> list[Any]:
+    return list(inspect.signature(class_to_inspect).parameters)
 
 
-def create_tools(**kwargs):
+def create_tools(**kwargs: dict) -> dict[str, Tool]:
     initialized_objects = {}
     for cls in registry:
-        keys = get_attributes(cls)
-        filtered_kwargs = get_subkwargs(kwargs=kwargs, keys=keys)
-        object = cls(**filtered_kwargs)
-        initialized_objects[object.tool_dict["name"]] = object
+        keys = _get_attributes(cls)
+        filtered_kwargs = _get_subkwargs(kwargs=kwargs, keys=keys)
+        obj = cls(**filtered_kwargs)
+        initialized_objects[obj.tool_dict["name"]] = obj
     return initialized_objects

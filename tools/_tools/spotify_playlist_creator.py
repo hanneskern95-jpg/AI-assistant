@@ -1,10 +1,14 @@
 import json
-from ..utils.spotify import create_playlist, catch_liked_songs
-from ..tool import Tool, AnswerDict
+
+from openai import OpenAI
+
+from ..tool import AnswerDict, Tool
+from ..utils.spotify import catch_liked_songs, create_playlist
+
 
 class SpotifyTool(Tool):
 
-    def __init__(self, model, openai):
+    def __init__(self, model: str, openai: OpenAI) -> None:
         self.tool_dict = {
             "type": "function",
             "name": "create_spotify_playlist",
@@ -19,7 +23,8 @@ class SpotifyTool(Tool):
                     },
                     "use_liked_songs": {
                         "type": "boolean",
-                        "description": "Decides if the creator of the playlist should use the user's liked songs as a reference. If not stated explicitly, set this to true as default. If the user asks for a 'general' or 'generic' playlist, set this to false."
+                        "description": """Decides if the creator of the playlist should use the user's liked songs as a reference. If not stated explicitly, set this to true as default. 
+                                        If the user asks for a 'general' or 'generic' playlist, set this to false.""",
                     },
                     "liked_songs_description": {
                         "type": "string",
@@ -28,11 +33,11 @@ class SpotifyTool(Tool):
                         Example 2: The user wants a playlist consisting of new songs. Only use the list of liked songs as reference, but do not put already liked songs in the playlist.\
                         Example 3: The user wants a playlist consisting of already liked songs. Exclusively use songs from the list of liked songs.\
                         If no further information on what the user wants is given, use Example 1 as default.""",
-                    }
+                    },
                 },
                 "required": ["description_playlist"],
-                "additionalProperties": False
-            }
+                "additionalProperties": False,
+            },
         }
         self._system_prompt = "You are an AI assisstant helping with creating engaging spotify playlists."
         self._model = model
@@ -40,14 +45,14 @@ class SpotifyTool(Tool):
         self._song_list = None
 
 
-    def create_answer(self, song_dict) -> AnswerDict:
+    def create_answer(self, song_dict: dict) -> AnswerDict:
         answer =  f"Created PLaylist with name '{song_dict['name']}' with the following songs:"
         for song in song_dict["songs"]:
             answer += f"\n{song['name']} - {song['artist']}"
         return {"answer_str": answer}
 
 
-    def run_tool(self, description_playlist, use_liked_songs = False, liked_songs_description = ""):
+    def run_tool(self, description_playlist: str, use_liked_songs: bool = False, liked_songs_description: str = "") -> AnswerDict:
 
         description_playlist +="""\
         Answer in a json format, containing a title for the playlist and a list of the songs with song name and artist/artists. See the following example:\
@@ -58,7 +63,16 @@ class SpotifyTool(Tool):
         if use_liked_songs:
             if not self._song_list:
                 self._song_list = ", ".join(catch_liked_songs())
-            messages = [{"role": "system", "content": self._system_prompt}, {"role": "system", "content": "Here is a list of the user's liked songs. "+self._song_list}, {"role": "system", "content": liked_songs_description},{"role": "user", "content": description_playlist}]
+
+            user_message = f"""
+            Create a playlist for the user, following the description: {description_playlist}/n\
+            Use the user's liked songs as reference as follows: {liked_songs_description}/n\ 
+            Here is the list of liked songs: {self._song_list}\
+            """
+            messages = [
+                {"role": "system", "content": self._system_prompt}, 
+                {"role": "user", "content": user_message},
+                ]
         else:
             messages = [{"role": "system", "content": self._system_prompt}, {"role": "user", "content": description_playlist}]
 

@@ -1,12 +1,30 @@
 import json
-from ..tool import Tool, AnswerDict
 import re
+from typing import TypedDict, TypeGuard
+
+from openai import OpenAI
 import streamlit as st
-import streamlit_notify as stn
+
+from ai_utils import get_response_text
+
+from ..tool import AnswerDict, Tool
+
+
+class Recipe(TypedDict):
+    title: str
+    link: str
+    ingredients: list[str]
+    instructions: list[str]
+    description_and_advertisment: str
+
+
+class RecipeAnswerDict(AnswerDict):
+    recipes: list[Recipe]
+
 
 class RecipeSuggestTool(Tool):
 
-    def __init__(self, model, openai):
+    def __init__(self, model: str, openai: OpenAI) -> None:
         self.tool_dict = {
             "type": "function",
             "name": "find_recipe_online",
@@ -25,14 +43,14 @@ class RecipeSuggestTool(Tool):
                 },
                 "required": ["description"],
                 "additionalProperties": False,
-            }
+            },
         }
         self._system_prompt = "You are an AI assisstant searching healthy and tasty recipes on the website Chefkoch.de and suggesting them to the user. Always aim to present high rated recipes."
         self._model = model
         self._openai = openai
 
 
-    def create_answer(self, suggested_recipes: list[dict]) -> AnswerDict:
+    def create_answer(self, suggested_recipes: list[Recipe]) -> RecipeAnswerDict:
         answer =  ""
         for index, recipe in enumerate(suggested_recipes):
             answer += f"Recipe {index+1}: {recipe['title']} \n\n"
@@ -49,15 +67,7 @@ class RecipeSuggestTool(Tool):
         return re.sub(r"^```(?:json)?|```$", "", raw_str.strip(), flags=re.MULTILINE).strip()
 
 
-    def _add_tabbed_object(self, answer: AnswerDict) -> None:
-        stn.toast("Recipe pinned!", duration=3, icon="📌")
-        st.session_state["pinned_object"] = {
-            "function_name": self.tool_dict["name"],
-            "AnswerDict": answer,
-        }
-
-
-    def _render_recipe(self, recipe: dict, index: int | None) -> st.delta_generator.DeltaGenerator:
+    def _render_recipe(self, recipe: Recipe, index: int | None) -> st.delta_generator.DeltaGenerator:
         st.markdown(f"### Rezept {''+str(index+1) if index else ''}: {recipe['title']}")
         st.markdown(recipe["description_and_advertisment"])
         with st.expander("Zutaten", expanded=False):
@@ -75,19 +85,31 @@ class RecipeSuggestTool(Tool):
 
     def render_answer(self, answer: AnswerDict) -> None:
         recipes = answer.get("recipes", [])
+
         if not isinstance(recipes, list) or len(recipes) == 0:
             st.markdown(answer.get("answer_str", "No recipes found."))
+            return
+        
         for index, recipe in enumerate(recipes):
             column_button = self._render_recipe(recipe, index)
             with column_button:
-                st.button("Pin to chat", on_click=lambda rec=recipe: self._add_tabbed_object(rec), key=f"pin_recipe_{recipe['title']}_{index}")
+                st.button("Pin to chat", on_click=lambda rec=recipe: self.add_tabbed_object(rec), key=f"pin_recipe_{recipe['title']}_{index}")
 
     
-    def render_pinned_object(self, recipe) -> None:
+    @staticmethod
+    def is_recipe(obj: dict) -> TypeGuard[Recipe]:
+        required_keys = {"title", "link", "ingredients", "instructions", "description_and_advertisment"}
+        return isinstance(obj, dict) and required_keys.issubset(obj.keys())
+
+
+    def render_pinned_object(self, recipe: dict) -> None:
+        if not self.is_recipe(recipe):
+            st.error("Pinned object has invalid format.")
+            return
         self._render_recipe(recipe, None)
 
 
-    def run_tool(self, description_recipe):
+    def run_tool(self, description_recipe: str) -> RecipeAnswerDict:
 
         response = self._openai.responses.create(
             model=self._model,   # Or "gpt-5.1" if you prefer
@@ -116,12 +138,12 @@ class RecipeSuggestTool(Tool):
                 },
             ],
         )
-        recipe_list_str = response.output[1].content[0].text
+        recipe_list_str = get_response_text(response)
         try:
             suggested_recipes = json.loads(self._clean_up_str(recipe_list_str))
         except json.decoder.JSONDecodeError:
             return {
-                "answer_str": "could not convert the following string into a dictionary:\n\n"+response.output[1].content[0].text,
+                "answer_str": "could not convert the following string into a dictionary:\n\n"+recipe_list_str,
                 "recipes": [],
                 }
 

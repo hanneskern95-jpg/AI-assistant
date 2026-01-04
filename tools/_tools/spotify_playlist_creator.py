@@ -1,3 +1,12 @@
+"""Spotify playlist creation tool.
+
+This module implements a tool that generates a Spotify playlist based
+on a textual description and (optionally) the user's liked songs. The
+tool constructs a prompt for the chat model, asks for a JSON-formatted
+playlist, and uses helper functions from ``utils.spotify`` to create
+the playlist in the user's account.
+"""
+
 import json
 
 from openai import OpenAI
@@ -7,8 +16,24 @@ from ..utils.spotify import catch_liked_songs, create_playlist
 
 
 class SpotifyTool(Tool):
+    """Tool that builds and creates a Spotify playlist.
+
+    The tool assembles a prompt describing the desired playlist,
+    optionally includes the user's liked songs as reference, calls the
+    chat model to obtain a JSON playlist, and then forwards the result
+    to the Spotify helper to create the actual playlist.
+    """
 
     def __init__(self, model: str, openai: OpenAI) -> None:
+        """Initialize the SpotifyTool.
+
+        Args:
+            model (str): Model identifier used for the chat API.
+            openai (OpenAI): An initialized OpenAI client instance.
+
+        Returns:
+            None
+        """
         self.tool_dict = {
             "type": "function",
             "name": "create_spotify_playlist",
@@ -23,8 +48,7 @@ class SpotifyTool(Tool):
                     },
                     "use_liked_songs": {
                         "type": "boolean",
-                        "description": """Decides if the creator of the playlist should use the user's liked songs as a reference. If not stated explicitly, set this to true as default. 
-                                        If the user asks for a 'general' or 'generic' playlist, set this to false.""",
+                        "description": "Whether to use the user's liked songs as a reference when building the playlist.",
                     },
                     "liked_songs_description": {
                         "type": "string",
@@ -39,24 +63,49 @@ class SpotifyTool(Tool):
                 "additionalProperties": False,
             },
         }
-        self._system_prompt = "You are an AI assisstant helping with creating engaging spotify playlists."
+        self._system_prompt = "You are an AI assistant helping with creating engaging spotify playlists."
         self._model = model
         self._openai = openai
         self._song_list = None
 
 
     def create_answer(self, song_dict: dict) -> AnswerDict:
-        answer =  f"Created PLaylist with name '{song_dict['name']}' with the following songs:"
+        """Render a human-readable answer describing the created playlist.
+
+        Args:
+            song_dict (dict): The parsed playlist structure containing
+                ``name`` and ``songs``.
+
+        Returns:
+            AnswerDict: A dictionary containing a formatted string
+            suitable for UI display.
+        """
+        answer =  f"Created playlist with name '{song_dict['name']}' with the following songs:"
         for song in song_dict["songs"]:
-            answer += f"\n{song['name']} - {song['artist']}"
+            answer += f"\n{song['name']} - {song.get('artist', '')}"
         return {"answer_str": answer}
 
 
     def run_tool(self, description_playlist: str, use_liked_songs: bool = False, liked_songs_description: str = "") -> AnswerDict:
+        """Generate and create a Spotify playlist from the given description.
+
+        The method constructs a chat message asking the model to return
+        a JSON playlist (with ``name`` and ``songs``). If
+        ``use_liked_songs`` is True the tool will include the user's
+        liked songs as context.
+
+        Args:
+            description_playlist (str): Text description of the desired playlist.
+            use_liked_songs (bool): Whether to include the user's liked songs.
+            liked_songs_description (str): How liked songs should be used.
+
+        Returns:
+            AnswerDict: The display-ready result after the playlist is created.
+        """
 
         description_playlist +="""\
         Answer in a json format, containing a title for the playlist and a list of the songs with song name and artist/artists. See the following example:\
-        {"name": "Example Playlist", "songs": [{"artist": "linkin park", "name": "emptiness machine"}, "{"artist": "breaking benjamin", "name": "diary of jane"}]}\
+        {"name": "Example Playlist", "songs": [{"artist": "example artist_1", "name": "example songname_1"}, {"artist": "example artist_2", "name": "example songname_2"}]}\
         Make the playlist 10 to 20 songs long.
         """
 
@@ -65,16 +114,19 @@ class SpotifyTool(Tool):
                 self._song_list = ", ".join(catch_liked_songs())
 
             user_message = f"""
-            Create a playlist for the user, following the description: {description_playlist}/n\
-            Use the user's liked songs as reference as follows: {liked_songs_description}/n\ 
-            Here is the list of liked songs: {self._song_list}\
+            Create a playlist for the user, following the description: {description_playlist}/n
+            Use the user's liked songs as reference as follows: {liked_songs_description}/n
+            Here is the list of liked songs: {self._song_list}
             """
             messages = [
-                {"role": "system", "content": self._system_prompt}, 
+                {"role": "system", "content": self._system_prompt},
                 {"role": "user", "content": user_message},
-                ]
+            ]
         else:
-            messages = [{"role": "system", "content": self._system_prompt}, {"role": "user", "content": description_playlist}]
+            messages = [
+                {"role": "system", "content": self._system_prompt},
+                {"role": "user", "content": description_playlist},
+            ]
 
         response = self._openai.chat.completions.create(model=self._model, messages=messages, response_format={"type": "json_object"})
         song_dict = json.loads(response.choices[0].message.content)

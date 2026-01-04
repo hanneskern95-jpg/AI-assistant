@@ -1,3 +1,11 @@
+"""Recipe suggestion tool using web search (Chefkoch.de).
+
+This module provides a tool that searches Chefkoch.de for recipes
+matching a user's description. It returns a small JSON array of
+recipe objects and offers rendering helpers to display and pin the
+recipes within the Streamlit UI.
+"""
+
 import json
 import re
 from typing import TypedDict, TypeGuard
@@ -11,6 +19,16 @@ from ..tool import AnswerDict, Tool
 
 
 class Recipe(TypedDict):
+    """TypedDict describing a recipe extracted from the web.
+
+    Fields:
+        title: The recipe title.
+        link: URL to the original recipe page.
+        ingredients: A list of ingredient strings.
+        instructions: A list of instruction steps.
+        description_and_advertisment: Short paragraph selling the recipe.
+    """
+
     title: str
     link: str
     ingredients: list[str]
@@ -19,12 +37,30 @@ class Recipe(TypedDict):
 
 
 class RecipeAnswerDict(AnswerDict):
+    """AnswerDict extended with a list of recipes."""
+
     recipes: list[Recipe]
 
 
 class RecipeSuggestTool(Tool):
+    """Tool that finds and suggests recipes from Chefkoch.de.
+
+    The tool asks the responses API (with web search enabled) to find
+    three distinct recipes matching the user's description, parses the
+    returned JSON, and provides rendering helpers that integrate with
+    Streamlit (including pinning recipes into session state).
+    """
 
     def __init__(self, model: str, openai: OpenAI) -> None:
+        """Initialize the recipe suggestion tool.
+
+        Args:
+            model (str): Model identifier used for the responses API.
+            openai (OpenAI): An initialized OpenAI client instance.
+
+        Returns:
+            None
+        """
         self.tool_dict = {
             "type": "function",
             "name": "find_recipe_online",
@@ -51,6 +87,15 @@ class RecipeSuggestTool(Tool):
 
 
     def create_answer(self, suggested_recipes: list[Recipe]) -> RecipeAnswerDict:
+        """Create a human-readable summary and package recipes for the UI.
+
+        Args:
+            suggested_recipes (list[Recipe]): Parsed recipe objects.
+
+        Returns:
+            RecipeAnswerDict: A dict containing ``answer_str`` for display
+            and the original list of recipes under ``recipes``.
+        """
         answer =  ""
         for index, recipe in enumerate(suggested_recipes):
             answer += f"Recipe {index+1}: {recipe['title']} \n\n"
@@ -60,14 +105,39 @@ class RecipeSuggestTool(Tool):
         return {
             "answer_str": answer,
             "recipes": suggested_recipes,
-            }
+        }
     
 
     def _clean_up_str(self, raw_str: str) -> str:
+        """Remove surrounding code fences and trim whitespace from model output.
+
+        The responses API may return JSON wrapped in markdown code
+        fences (```json ... ```). This helper strips those fences and
+        returns a clean string ready for JSON parsing.
+
+        Args:
+            raw_str (str): Raw text returned by the model.
+
+        Returns:
+            str: Cleaned string without code fences.
+        """
         return re.sub(r"^```(?:json)?|```$", "", raw_str.strip(), flags=re.MULTILINE).strip()
 
 
     def _render_recipe(self, recipe: Recipe, index: int | None) -> st.delta_generator.DeltaGenerator:
+        """Render a single recipe into the Streamlit UI.
+
+        The method shows title, description, ingredients, instructions,
+        and a link to the original page. It returns the column used for
+        action buttons so callers can attach a pin button.
+
+        Args:
+            recipe (Recipe): The recipe to render.
+            index (int | None): Optional index used for labeling.
+
+        Returns:
+            st.delta_generator.DeltaGenerator: The column container for buttons.
+        """
         st.markdown(f"### Rezept {''+str(index+1) if index else ''}: {recipe['title']}")
         st.markdown(recipe["description_and_advertisment"])
         with st.expander("Zutaten", expanded=False):
@@ -84,6 +154,19 @@ class RecipeSuggestTool(Tool):
 
 
     def render_answer(self, answer: AnswerDict) -> None:
+        """Render the tool's answer in the Streamlit chat UI.
+
+        If the answer contains a list of recipes they are rendered with
+        pin buttons. Otherwise the textual ``answer_str`` is displayed.
+
+        Args:
+            answer (AnswerDict): The value returned by ``run_tool`` or
+                ``create_answer`` containing ``answer_str`` and
+                optionally ``recipes``.
+
+        Returns:
+            None
+        """
         recipes = answer.get("recipes", [])
 
         if not isinstance(recipes, list) or len(recipes) == 0:
@@ -98,11 +181,28 @@ class RecipeSuggestTool(Tool):
     
     @staticmethod
     def is_recipe(obj: dict) -> TypeGuard[Recipe]:
+        """Type guard that validates whether a dict is a Recipe.
+
+        Args:
+            obj (dict): The object to validate.
+
+        Returns:
+            TypeGuard[Recipe]: True when the object has the required keys.
+        """
         required_keys = {"title", "link", "ingredients", "instructions", "description_and_advertisment"}
         return isinstance(obj, dict) and required_keys.issubset(obj.keys())
 
 
     def render_pinned_object(self, recipe: dict) -> None:
+        """Render a pinned recipe previously stored in session state.
+
+        Args:
+            recipe (dict): Pinned recipe data. Raises an error in the
+                UI if the format is invalid.
+
+        Returns:
+            None
+        """
         if not self.is_recipe(recipe):
             st.error("Pinned object has invalid format.")
             return
@@ -110,7 +210,20 @@ class RecipeSuggestTool(Tool):
 
 
     def run_tool(self, description_recipe: str) -> RecipeAnswerDict:
+        """Search the web for recipes matching the provided description.
 
+        The tool requests three distinct recipe pages from Chefkoch.de,
+        instructs the model to extract structured fields, parses the
+        returned JSON, and converts it into a ``RecipeAnswerDict``.
+
+        Args:
+            description_recipe (str): Description of the desired recipes.
+
+        Returns:
+            RecipeAnswerDict: A dictionary containing ``answer_str`` and
+            the parsed ``recipes`` list. If parsing fails an error-like
+            result with an empty recipes list is returned.
+        """
         response = self._openai.responses.create(
             model=self._model,   # Or "gpt-5.1" if you prefer
             tools=[{"type": "web_search"}],  # Enable web browsing
@@ -145,6 +258,6 @@ class RecipeSuggestTool(Tool):
             return {
                 "answer_str": "could not convert the following string into a dictionary:\n\n"+recipe_list_str,
                 "recipes": [],
-                }
+            }
 
         return self.create_answer(suggested_recipes)

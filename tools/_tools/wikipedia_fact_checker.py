@@ -1,3 +1,13 @@
+"""Wikipedia fact-checking tool.
+
+This module implements a tool that queries the web (Wikipedia) to
+verify a user's factual claim or to provide a citation from Wikipedia.
+The tool is intended to be invoked only when the user explicitly
+requests verification or a Wikipedia citation; it returns a small
+JSON-shaped result describing whether a relevant article was found
+and whether that article answers the user's question.
+"""
+
 import json
 import re
 
@@ -7,8 +17,32 @@ from ..tool import AnswerDict, Tool
 
 
 class WikipediaFactCheckerTool(Tool):
+    """Tool that searches Wikipedia and produces a structured result.
+
+    The tool uses the OpenAI responses API with a web search tool to
+    locate and read a relevant Wikipedia article. It returns a small
+    JSON structure indicating the extracted answer (or null), a link
+    to the article (or null), and an enum-like ``article_answers_question``
+    which is one of ``'Yes'``, ``'Inconclusive'``, or
+    ``'NoArticleFound'``.
+
+    Attributes:
+        _system_prompt (str): System prompt describing the tool's role.
+        _model (str): Model name to use for the responses API.
+        _openai (OpenAI): OpenAI client instance used to call the API.
+        _result (dict | None): Last parsed JSON result from the model.
+    """
 
     def __init__(self, model: str, openai: OpenAI) -> None:
+        """Create a new WikipediaFactCheckerTool.
+
+        Args:
+            model (str): The model identifier passed to the responses API.
+            openai (OpenAI): An initialized OpenAI client instance.
+
+        Returns:
+            None
+        """
         self.tool_dict = {
             "type": "function",
             "name": "check_fact_wikipedia",
@@ -42,11 +76,38 @@ class WikipediaFactCheckerTool(Tool):
         self._openai = openai
         self._result = None
 
+
     def _clean_up_str(self, raw_str: str) -> str:
+        """Strip surrounding code fences and whitespace from model output.
+
+        The model's response is expected to be raw JSON, but may be
+        wrapped in Markdown code fences (for example ```json ... ```).
+        This helper removes those fences and trims surrounding
+        whitespace.
+
+        Args:
+            raw_str (str): Raw string returned by the model.
+
+        Returns:
+            str: The cleaned JSON string.
+        """
         return re.sub(r"^```(?:json)?|```$", "", raw_str.strip(), flags=re.MULTILINE).strip()
 
 
     def _create_answer(self, answer_dict: dict) -> AnswerDict:
+        """Convert the structured result into an ``AnswerDict`` for rendering.
+
+        The method maps the internal ``article_answers_question`` status to
+        a human-readable message used by the UI.
+
+        Args:
+            answer_dict (dict): Parsed JSON result with keys
+                ``answer``, ``wikipedia_link``, and ``article_answers_question``.
+
+        Returns:
+            AnswerDict: A dictionary containing ``answer_str`` suitable
+            for display.
+        """
         if answer_dict["article_answers_question"] == "NoArticleFound":
             answer = "No relevant Wikipedia article found to answer the question."
         elif answer_dict["article_answers_question"] == "Inconclusive":
@@ -57,6 +118,22 @@ class WikipediaFactCheckerTool(Tool):
 
 
     def run_tool(self, question: str) -> AnswerDict:
+        """Query the model/web-search to fact-check a question against Wikipedia.
+
+        This method calls the OpenAI responses API with a web search
+        tool, instructing the model to search for a relevant Wikipedia
+        article and return a strictly formatted JSON payload. The JSON
+        is parsed and converted to an ``AnswerDict`` for display. If
+        parsing fails the tool returns an error-like structure encoded
+        as an ``AnswerDict``.
+
+        Args:
+            question (str): The user's question or claim to verify.
+
+        Returns:
+            AnswerDict: A dictionary with an ``answer_str`` that can be
+            rendered to the UI.
+        """
         response = self._openai.responses.create(
             model=self._model,
             tools=[{"type": "web_search"}],
@@ -85,11 +162,8 @@ class WikipediaFactCheckerTool(Tool):
         try:
             self._result = json.loads(self._clean_up_str(result_str))
         except json.decoder.JSONDecodeError:
-            return json.dumps({
-                "answer": None,
-                "wikipedia_link": None,
-                "article_answers_question": "NoArticleFound",
-                "error": "Could not parse response: " + result_str,
-            })
+            return {
+                "answer_str": "Could not parse response: " + result_str,
+                }
 
         return self._create_answer(self._result)

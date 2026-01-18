@@ -61,3 +61,10 @@ skip-magic-trailing-comma = false
 known-first-party = ["tools"]
 combine-as-imports = true
 force-sort-within-sections = true
+
+#########################
+# Pytest Configuration
+#########################
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

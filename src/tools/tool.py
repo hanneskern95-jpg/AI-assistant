@@ -127,7 +127,7 @@ class Tool(metaclass=AutoRegister):
         Returns:
             None
         """
-        stn.toast("Recipe pinned!", duration=3, icon="📌")
+        stn.toast("Object pinned!", duration=3, icon="📌")
         st.session_state["pinned_object"] = {
             "function_name": self.tool_dict["name"],
             "AnswerDict": answer,

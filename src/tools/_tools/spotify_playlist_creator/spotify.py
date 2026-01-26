@@ -68,9 +68,9 @@ def create_playlist(name, song_list):
     """
 
     sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
-        client_id="db283fe46ff3452ebeecfc328a68fb58",
-        client_secret="28d8a27fca2440319df77c97ae50e22e",
-        redirect_uri="http://127.0.0.1:8888/callback",
+        client_id=os.getenv("SPOTIFY_CLIENT_ID"),
+        client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
+        redirect_uri=os.getenv("SPOTIFY_REDIRECT_URI"),
         scope="playlist-modify-public playlist-modify-private"
     ))
 
@@ -122,5 +122,3 @@ def catch_liked_songs():
         offset += limit
 
     return songs
-
-

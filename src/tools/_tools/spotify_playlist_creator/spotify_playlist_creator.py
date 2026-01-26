@@ -11,8 +11,8 @@ import json
 
 from openai import OpenAI
 
-from ..tool import AnswerDict, Tool
-from ..utils.spotify import catch_liked_songs, create_playlist
+from ...tool import AnswerDict, Tool
+from .spotify import catch_liked_songs, create_playlist
 
 
 class SpotifyTool(Tool):

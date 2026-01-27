@@ -62,6 +62,17 @@ known-first-party = ["tools"]
 combine-as-imports = true
 force-sort-within-sections = true
 
+[tool.mypy]
+mypy_path = "src"
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+
+[tool.pyright]
+pythonPath = "src"
+extraPaths = ["src"]
+
 #########################
 # Pytest Configuration
 #########################

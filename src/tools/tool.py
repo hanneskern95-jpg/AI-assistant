@@ -63,7 +63,7 @@ class Tool(metaclass=AutoRegister):
 
     tool_dict: ToolDict
 
-    def run_tool(self, kwargs: dict) -> AnswerDict:
+    def run_tool(self, *args: object, **kwargs: object) -> AnswerDict:
         """Execute the tool with the provided arguments.
 
         Subclasses must override this method to perform the tool's
@@ -92,6 +92,7 @@ class Tool(metaclass=AutoRegister):
         Returns:
             None
         """
+        
         st.markdown(answer["answer_str"])
 
 

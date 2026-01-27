@@ -13,6 +13,8 @@ import re
 
 from openai import OpenAI
 
+from ai_utils import get_response_text
+
 from ..tool import AnswerDict, Tool
 
 
@@ -117,7 +119,7 @@ class WikipediaFactCheckerTool(Tool):
         return {"answer_str": answer}
 
 
-    def run_tool(self, question: str) -> AnswerDict:
+    def run_tool(self, *args: object, **kwargs: object) -> AnswerDict:
         """Query the model/web-search to fact-check a question against Wikipedia.
 
         This method calls the OpenAI responses API with a web search
@@ -134,6 +136,11 @@ class WikipediaFactCheckerTool(Tool):
             AnswerDict: A dictionary with an ``answer_str`` that can be
             rendered to the UI.
         """
+
+        #check arguments
+        question = kwargs["question"]
+        assert isinstance(question, str)
+
         response = self._openai.responses.create(
             model=self._model,
             tools=[{"type": "web_search"}],
@@ -158,12 +165,17 @@ class WikipediaFactCheckerTool(Tool):
             ],
         )
         
-        result_str = response.output[1].content[0].text
+        result_str = get_response_text(response)
         try:
             self._result = json.loads(self._clean_up_str(result_str))
         except json.decoder.JSONDecodeError:
             return {
                 "answer_str": "Could not parse response: " + result_str,
+                }
+        
+        if self._result is None:
+            return {
+                "answer_str": "No result returned from model.",
                 }
 
         return self._create_answer(self._result)

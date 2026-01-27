@@ -1,4 +1,5 @@
 venv/*
+.mypy_chache/*
 .cache
 .env
 *.pyc

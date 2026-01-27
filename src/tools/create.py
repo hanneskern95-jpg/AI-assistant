@@ -56,7 +56,7 @@ def _get_attributes(class_to_inspect: type[Tool]) -> list[Any]:
     return list(inspect.signature(class_to_inspect).parameters)
 
 
-def create_tools(**kwargs: dict) -> dict[str, Tool]:
+def create_tools(**kwargs: object) -> dict[str, Tool]:
     """Instantiate all tools registered in ``tools.tool.registry``.
 
     For each tool class in the central registry this function determines

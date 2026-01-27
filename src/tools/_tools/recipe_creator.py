@@ -124,7 +124,7 @@ class RecipeSuggestTool(Tool):
         return re.sub(r"^```(?:json)?|```$", "", raw_str.strip(), flags=re.MULTILINE).strip()
 
 
-    def _render_recipe(self, recipe: Recipe, index: int | None) -> st.delta_generator.DeltaGenerator:
+    def _render_recipe(self, recipe: Recipe, index: int | None) -> st.delta_generator.DeltaGenerator: # type: ignore
         """Render a single recipe into the Streamlit UI.
 
         The method shows title, description, ingredients, instructions,
@@ -193,23 +193,24 @@ class RecipeSuggestTool(Tool):
         return isinstance(obj, dict) and required_keys.issubset(obj.keys())
 
 
-    def render_pinned_object(self, recipe: dict) -> None:
-        """Render a pinned recipe previously stored in session state.
+    def render_pinned_object(self, answer: dict) -> None:
+        """Render a pinned recipe previously stored in session state. The answer needs to be a recipe.
 
         Args:
-            recipe (dict): Pinned recipe data. Raises an error in the
+            answer (dict): Pinned recipe data. Raises an error in the
                 UI if the format is invalid.
 
         Returns:
             None
         """
-        if not self.is_recipe(recipe):
+
+        if not self.is_recipe(answer):
             st.error("Pinned object has invalid format.")
             return
-        self._render_recipe(recipe, None)
+        self._render_recipe(answer, None)
 
 
-    def run_tool(self, description_recipe: str) -> RecipeAnswerDict:
+    def run_tool(self, *args:object, **kwargs:object) -> RecipeAnswerDict:
         """Search the web for recipes matching the provided description.
 
         The tool requests three distinct recipe pages from Chefkoch.de,
@@ -224,6 +225,11 @@ class RecipeSuggestTool(Tool):
             the parsed ``recipes`` list. If parsing fails an error-like
             result with an empty recipes list is returned.
         """
+
+        #check arguments
+        description_recipe = kwargs["description_recipe"]
+        assert isinstance(description_recipe, str)
+
         response = self._openai.responses.create(
             model=self._model,   # Or "gpt-5.1" if you prefer
             tools=[{"type": "web_search"}],  # Enable web browsing

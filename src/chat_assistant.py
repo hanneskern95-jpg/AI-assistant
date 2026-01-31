@@ -48,20 +48,20 @@ class Assistant:
         history (list[dict]): Conversation history as a list of message
             dicts compatible with the chat API.
     """
+
     load_dotenv(override=True)
 
     def __init__(self) -> None:
-        self.openai_api_key = os.getenv('OPENAI_API_KEY')
+        self.openai_api_key = os.getenv("OPENAI_API_KEY")
         if not self.openai_api_key:
             print("OpenAI API Key not set")
-            
+
         self.openai = OpenAI()
         self.system_message = "You are an AI assistant."
 
-        self.tools = create_tools(model = MODEL_SEARCH, openai = self.openai) # type: ignore
+        self.tools = create_tools(model=MODEL_SEARCH, openai=self.openai)  # type: ignore
         self.tool_dicts = [{"type": "function", "function": tool.tool_dict} for tool in self.tools.values()]
         self.history: list[dict] = []
-
 
     def get_attributes_from_tool_call_message(self, message: ChatCompletionMessage) -> tuple[ChatCompletionMessageFunctionToolCall | None, str, dict, str]:
         """Extract tool call attributes from a model message.
@@ -86,13 +86,12 @@ class Assistant:
             return None, "", {}, ""
 
         tool_call = message.tool_calls[0]
-        if not hasattr(tool_call, 'function') or not tool_call.function: # type: ignore
+        if not hasattr(tool_call, "function") or not tool_call.function:  # type: ignore
             st.error("No tool call found in the message.")
             return None, "", {}, ""
 
-        arguments_str = tool_call.function.arguments # type: ignore
-        return tool_call, tool_call.function.name, json.loads(arguments_str), arguments_str # type: ignore
-
+        arguments_str = tool_call.function.arguments  # type: ignore
+        return tool_call, tool_call.function.name, json.loads(arguments_str), arguments_str  # type: ignore
 
     def handle_tools(self, message: ChatCompletionMessage) -> AnswerDict:
         """Execute a tool call returned by the model and append results.
@@ -114,8 +113,9 @@ class Assistant:
         tool_call, function_name, arguments, arguments_str = self.get_attributes_from_tool_call_message(message)
         if tool_call is None:
             return {"answer_str": "Error: No tool call found."}
-        
-        self.history.append({
+
+        self.history.append(
+            {
                 "role": "assistant",
                 "content": "",
                 "tool_calls": [
@@ -128,12 +128,12 @@ class Assistant:
                         "type": tool_call.type,
                     },
                 ],
-        })
+            }
+        )
 
         tool_answer = self.tools[function_name].run_tool(**arguments)
         self.history.append({"role": "tool", "content": "", "tool_answer": tool_answer, "tool_name": function_name, "tool_call_id": tool_call.id})
         return tool_answer
-
 
     def chat_with_tool(self, message: ChatCompletionMessage) -> None:
         """Send the user message to the model, handle tools, and update history.
@@ -161,7 +161,6 @@ class Assistant:
         else:
             self.history.append({"role": "assistant", "content": response.choices[0].message.content})
 
-
     def render_answer(self, message: dict) -> None:
         """Render a chat message to the Streamlit UI.
 
@@ -183,7 +182,6 @@ class Assistant:
             tool = self.tools[message["tool_name"]]
             tool.render_answer(message["tool_answer"])
 
-    
     def render_pinned_object(self, pinned_object: dict) -> None:
         """Render a pinned object using the originating tool's renderer.
 

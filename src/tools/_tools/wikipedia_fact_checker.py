@@ -78,7 +78,6 @@ class WikipediaFactCheckerTool(Tool):
         self._openai = openai
         self._result = None
 
-
     def _clean_up_str(self, raw_str: str) -> str:
         """Strip surrounding code fences and whitespace from model output.
 
@@ -94,7 +93,6 @@ class WikipediaFactCheckerTool(Tool):
             str: The cleaned JSON string.
         """
         return re.sub(r"^```(?:json)?|```$", "", raw_str.strip(), flags=re.MULTILINE).strip()
-
 
     def _create_answer(self, answer_dict: dict) -> AnswerDict:
         """Convert the structured result into an ``AnswerDict`` for rendering.
@@ -118,7 +116,6 @@ class WikipediaFactCheckerTool(Tool):
             answer = f"{answer_dict['answer']}\nSource: {answer_dict['wikipedia_link']}"
         return {"answer_str": answer}
 
-
     def run_tool(self, *args: object, **kwargs: object) -> AnswerDict:
         """Query the model/web-search to fact-check a question against Wikipedia.
 
@@ -137,7 +134,7 @@ class WikipediaFactCheckerTool(Tool):
             rendered to the UI.
         """
 
-        #check arguments
+        # check arguments
         question = kwargs["question"]
         assert isinstance(question, str)
 
@@ -156,7 +153,7 @@ class WikipediaFactCheckerTool(Tool):
                         "  'answer': string,  // The answer to the question based on the Wikipedia article, or null if no article found. This should be a full sentence.\n"
                         "  'wikipedia_link': string,  // The URL link to the Wikipedia article, or null if no article found\n"
                         "  'article_answers_question': string  // One of: 'Yes' (article conclusively answers the question),"
-                        "       'Inconclusive' (article exists but doesn't conclusively answer)," 
+                        "       'Inconclusive' (article exists but doesn't conclusively answer),"
                         "       or 'NoArticleFound' (no Wikipedia article found)\n"
                         "}\n\n"
                         "Do not include commentary. Do not include markdown. Only return valid JSON."
@@ -164,18 +161,18 @@ class WikipediaFactCheckerTool(Tool):
                 },
             ],
         )
-        
+
         result_str = get_response_text(response)
         try:
             self._result = json.loads(self._clean_up_str(result_str))
         except json.decoder.JSONDecodeError:
             return {
                 "answer_str": "Could not parse response: " + result_str,
-                }
-        
+            }
+
         if self._result is None:
             return {
                 "answer_str": "No result returned from model.",
-                }
+            }
 
         return self._create_answer(self._result)

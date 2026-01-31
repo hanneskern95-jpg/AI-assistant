@@ -77,8 +77,7 @@ class Tool(metaclass=AutoRegister):
             AnswerDict: A dictionary containing at least ``answer_str``.
         """
         raise NotImplementedError("Subclasses must implement run_tool")
-        
-    
+
     def render_answer(self, answer: AnswerDict) -> None:
         """Render a tool answer into the Streamlit UI.
 
@@ -92,9 +91,8 @@ class Tool(metaclass=AutoRegister):
         Returns:
             None
         """
-        
-        st.markdown(answer["answer_str"])
 
+        st.markdown(answer["answer_str"])
 
     def render_pinned_object(self, answer: dict) -> None:
         """Render a pinned object stored in session state.
@@ -113,7 +111,6 @@ class Tool(metaclass=AutoRegister):
             st.error("Pinned object has invalid format.")
             return
         st.markdown(answer["answer_str"])
-
 
     def add_tabbed_object(self, answer: AnswerDict) -> None:
         """Add a pinned object to Streamlit session state and show a toast.

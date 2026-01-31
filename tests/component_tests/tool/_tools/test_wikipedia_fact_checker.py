@@ -31,11 +31,13 @@ class TestWikipediaFactCheckerTool:
             MagicMock(
                 content=[
                     MagicMock(
-                        text=json.dumps({
-                            "answer": "The capital of France is Paris.",
-                            "wikipedia_link": "https://en.wikipedia.org/wiki/Paris",
-                            "article_answers_question": "Yes",
-                        }),
+                        text=json.dumps(
+                            {
+                                "answer": "The capital of France is Paris.",
+                                "wikipedia_link": "https://en.wikipedia.org/wiki/Paris",
+                                "article_answers_question": "Yes",
+                            }
+                        ),
                     ),
                 ],
             ),  # Index 1 (used)
@@ -59,11 +61,13 @@ class TestWikipediaFactCheckerTool:
             MagicMock(
                 content=[
                     MagicMock(
-                        text=json.dumps({
-                            "answer": "Some partial information found",
-                            "wikipedia_link": "https://en.wikipedia.org/wiki/SomeArticle",
-                            "article_answers_question": "Inconclusive",
-                        }),
+                        text=json.dumps(
+                            {
+                                "answer": "Some partial information found",
+                                "wikipedia_link": "https://en.wikipedia.org/wiki/SomeArticle",
+                                "article_answers_question": "Inconclusive",
+                            }
+                        ),
                     ),
                 ],
             ),  # Index 1 (used)
@@ -84,11 +88,13 @@ class TestWikipediaFactCheckerTool:
             MagicMock(
                 content=[
                     MagicMock(
-                        text=json.dumps({
-                            "answer": None,
-                            "wikipedia_link": None,
-                            "article_answers_question": "NoArticleFound",
-                        }),
+                        text=json.dumps(
+                            {
+                                "answer": None,
+                                "wikipedia_link": None,
+                                "article_answers_question": "NoArticleFound",
+                            }
+                        ),
                     ),
                 ],
             ),  # Index 1 (used)
@@ -153,11 +159,13 @@ class TestWikipediaFactCheckerTool:
             MagicMock(
                 content=[
                     MagicMock(
-                        text=json.dumps({
-                            "answer": "Test",
-                            "wikipedia_link": "https://test.com",
-                            "article_answers_question": "Yes",
-                        }),
+                        text=json.dumps(
+                            {
+                                "answer": "Test",
+                                "wikipedia_link": "https://test.com",
+                                "article_answers_question": "Yes",
+                            }
+                        ),
                     ),
                 ],
             ),

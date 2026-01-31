@@ -24,10 +24,10 @@ def get_response_text(response: Response) -> str:
         string.
     """
     try:
-        return response.output[1].content[0].text   # type: ignore
+        return response.output[1].content[0].text  # type: ignore
     except (AttributeError, IndexError, TypeError):
         return ""
-    
+
 
 def get_response_text_from_chatcompletion(response: ChatCompletion) -> str | None:
     """Extract the primary text content from an OpenAI ``ChatCompletion``.

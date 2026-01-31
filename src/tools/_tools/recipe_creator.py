@@ -85,7 +85,6 @@ class RecipeSuggestTool(Tool):
         self._model = model
         self._openai = openai
 
-
     def create_answer(self, suggested_recipes: list[Recipe]) -> RecipeAnswerDict:
         """Create a human-readable summary and package recipes for the UI.
 
@@ -96,17 +95,16 @@ class RecipeSuggestTool(Tool):
             RecipeAnswerDict: A dict containing ``answer_str`` for display
             and the original list of recipes under ``recipes``.
         """
-        answer =  ""
+        answer = ""
         for index, recipe in enumerate(suggested_recipes):
-            answer += f"Recipe {index+1}: {recipe['title']} \n\n"
+            answer += f"Recipe {index + 1}: {recipe['title']} \n\n"
             answer += recipe["description_and_advertisment"]
-            if index+1 < len(suggested_recipes):
+            if index + 1 < len(suggested_recipes):
                 answer += "\n\n"
         return {
             "answer_str": answer,
             "recipes": suggested_recipes,
         }
-    
 
     def _clean_up_str(self, raw_str: str) -> str:
         """Remove surrounding code fences and trim whitespace from model output.
@@ -123,8 +121,7 @@ class RecipeSuggestTool(Tool):
         """
         return re.sub(r"^```(?:json)?|```$", "", raw_str.strip(), flags=re.MULTILINE).strip()
 
-
-    def _render_recipe(self, recipe: Recipe, index: int | None) -> st.delta_generator.DeltaGenerator: # type: ignore
+    def _render_recipe(self, recipe: Recipe, index: int | None) -> st.delta_generator.DeltaGenerator:  # type: ignore
         """Render a single recipe into the Streamlit UI.
 
         The method shows title, description, ingredients, instructions,
@@ -138,20 +135,19 @@ class RecipeSuggestTool(Tool):
         Returns:
             st.delta_generator.DeltaGenerator: The column container for buttons.
         """
-        st.markdown(f"### Rezept {''+str(index+1) if index else ''}: {recipe['title']}")
+        st.markdown(f"### Rezept {'' + str(index + 1) if index else ''}: {recipe['title']}")
         st.markdown(recipe["description_and_advertisment"])
         with st.expander("Zutaten", expanded=False):
-            for ingredient in recipe['ingredients']:
+            for ingredient in recipe["ingredients"]:
                 st.markdown(f"- {ingredient}")
         with st.expander("Anleitung", expanded=False):
-            for index, instruction in enumerate(recipe['instructions']):
-                st.markdown(f"**Step {index+1}:**")
+            for index, instruction in enumerate(recipe["instructions"]):
+                st.markdown(f"**Step {index + 1}:**")
                 st.markdown(instruction)
         column_button, column_link = st.columns(2)
         with column_link:
             st.markdown(f"[View Recipe Online]({recipe['link']})")
         return column_button
-
 
     def render_answer(self, answer: AnswerDict) -> None:
         """Render the tool's answer in the Streamlit chat UI.
@@ -172,13 +168,12 @@ class RecipeSuggestTool(Tool):
         if not isinstance(recipes, list) or len(recipes) == 0:
             st.markdown(answer.get("answer_str", "No recipes found."))
             return
-        
+
         for index, recipe in enumerate(recipes):
             column_button = self._render_recipe(recipe, index)
             with column_button:
                 st.button("Pin to chat", on_click=lambda rec=recipe: self.add_tabbed_object(rec), key=f"pin_recipe_{recipe['title']}_{index}")
 
-    
     @staticmethod
     def is_recipe(obj: dict) -> TypeGuard[Recipe]:
         """Type guard that validates whether a dict is a Recipe.
@@ -191,7 +186,6 @@ class RecipeSuggestTool(Tool):
         """
         required_keys = {"title", "link", "ingredients", "instructions", "description_and_advertisment"}
         return isinstance(obj, dict) and required_keys.issubset(obj.keys())
-
 
     def render_pinned_object(self, answer: dict) -> None:
         """Render a pinned recipe previously stored in session state. The answer needs to be a recipe.
@@ -209,8 +203,7 @@ class RecipeSuggestTool(Tool):
             return
         self._render_recipe(answer, None)
 
-
-    def run_tool(self, *args:object, **kwargs:object) -> RecipeAnswerDict:
+    def run_tool(self, *args: object, **kwargs: object) -> RecipeAnswerDict:
         """Search the web for recipes matching the provided description.
 
         The tool requests three distinct recipe pages from Chefkoch.de,
@@ -226,12 +219,12 @@ class RecipeSuggestTool(Tool):
             result with an empty recipes list is returned.
         """
 
-        #check arguments
+        # check arguments
         description_recipe = kwargs["description_recipe"]
         assert isinstance(description_recipe, str)
 
         response = self._openai.responses.create(
-            model=self._model,   # Or "gpt-5.1" if you prefer
+            model=self._model,  # Or "gpt-5.1" if you prefer
             tools=[{"type": "web_search"}],  # Enable web browsing
             input=[
                 {
@@ -262,7 +255,7 @@ class RecipeSuggestTool(Tool):
             suggested_recipes = json.loads(self._clean_up_str(recipe_list_str))
         except json.decoder.JSONDecodeError:
             return {
-                "answer_str": "could not convert the following string into a dictionary:\n\n"+recipe_list_str,
+                "answer_str": "could not convert the following string into a dictionary:\n\n" + recipe_list_str,
                 "recipes": [],
             }
 

@@ -69,12 +69,14 @@ def create_playlist(name: str, song_list: list) -> None:
             addition fails (propagated from the Spotipy client).
     """
 
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
-        client_id=os.getenv("SPOTIFY_CLIENT_ID"),
-        client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
-        redirect_uri=os.getenv("SPOTIFY_REDIRECT_URI"),
-        scope="playlist-modify-public playlist-modify-private",
-    ))
+    sp = spotipy.Spotify(
+        auth_manager=SpotifyOAuth(
+            client_id=os.getenv("SPOTIFY_CLIENT_ID"),
+            client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
+            redirect_uri=os.getenv("SPOTIFY_REDIRECT_URI"),
+            scope="playlist-modify-public playlist-modify-private",
+        )
+    )
     me = sp.me()
     if not me:
         raise RuntimeError("Failed to authenticate with Spotify API.")
@@ -88,7 +90,7 @@ def create_playlist(name: str, song_list: list) -> None:
     )
     if not playlist:
         raise RuntimeError("Failed to create Spotify playlist.")
-    
+
     ids = [find_track_id(make_song_string(song), sp) for song in song_list]
     sp.playlist_add_items(playlist["id"], ids)
 
@@ -102,12 +104,14 @@ def catch_liked_songs() -> list[str]:
     Returns:
         list[str]: The user's liked songs as human-readable strings.
     """
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
-        client_id=os.getenv("SPOTIFY_CLIENT_ID"),
-        client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
-        redirect_uri=os.getenv("SPOTIFY_REDIRECT_URI"),
-        scope="user-library-read",
-    ))
+    sp = spotipy.Spotify(
+        auth_manager=SpotifyOAuth(
+            client_id=os.getenv("SPOTIFY_CLIENT_ID"),
+            client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
+            redirect_uri=os.getenv("SPOTIFY_REDIRECT_URI"),
+            scope="user-library-read",
+        )
+    )
 
     songs = []
     limit = 50

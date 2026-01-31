@@ -156,15 +156,15 @@ class TestCreateTools:
         tools = create_tools(model="gpt-4o", openai=mock_openai, extra_param="ignored")
 
         # MockToolA requires model and openai
-        assert tools["mock_tool_a"].model == "gpt-4o"    # type: ignore
+        assert tools["mock_tool_a"].model == "gpt-4o"  # type: ignore
         assert tools["mock_tool_a"].openai == mock_openai  # type: ignore
 
         # MockToolB requires only model
-        assert tools["mock_tool_b"].model == "gpt-4o"   # type: ignore
+        assert tools["mock_tool_b"].model == "gpt-4o"  # type: ignore
         assert not hasattr(tools["mock_tool_b"], "openai")
 
         # MockToolC requires only openai
-        assert tools["mock_tool_c"].openai == mock_openai   # type: ignore
+        assert tools["mock_tool_c"].openai == mock_openai  # type: ignore
         assert not hasattr(tools["mock_tool_c"], "model")
 
     def test_create_tools_with_empty_registry(self) -> None:

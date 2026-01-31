@@ -144,14 +144,16 @@ class TestRecipeSuggestTool:
 
     def test_run_tool_with_single_recipe(self, tool: RecipeSuggestTool, mock_openai: MagicMock) -> None:
         """Test run_tool with a single recipe."""
-        single_recipe = [{
-            "title": "Test Pasta",
-            "link": "https://test.com",
-            "ingredients": ["Pasta", "Sauce"],
-            "instructions": ["Cook pasta", "Add sauce"],
-            "description_and_advertisment": "A simple test pasta.",
-        }]
-        
+        single_recipe = [
+            {
+                "title": "Test Pasta",
+                "link": "https://test.com",
+                "ingredients": ["Pasta", "Sauce"],
+                "instructions": ["Cook pasta", "Add sauce"],
+                "description_and_advertisment": "A simple test pasta.",
+            }
+        ]
+
         mock_response = MagicMock()
         mock_response.output = [
             MagicMock(),
@@ -204,7 +206,7 @@ class TestRecipeSuggestTool:
             "instructions": ["test"],
             "description_and_advertisment": "test",
         }
-        
+
         assert tool.is_recipe(valid_recipe) is True
 
     def test_is_recipe_type_guard_missing_field(self, tool: RecipeSuggestTool) -> None:
@@ -215,10 +217,10 @@ class TestRecipeSuggestTool:
             "ingredients": ["test"],
             # Missing 'instructions' and 'description_and_advertisment'
         }
-        
+
         assert tool.is_recipe(invalid_recipe) is False
 
     def test_is_recipe_type_guard_not_dict(self, tool: RecipeSuggestTool) -> None:
         """Test that is_recipe rejects non-dict objects."""
-        assert tool.is_recipe("not a dict") is False    # type: ignore
-        assert tool.is_recipe(None) is False            # type: ignore
+        assert tool.is_recipe("not a dict") is False  # type: ignore
+        assert tool.is_recipe(None) is False  # type: ignore

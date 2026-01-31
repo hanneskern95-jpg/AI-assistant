@@ -106,11 +106,11 @@ class TestAssistant:
                 "mock_tool_1": mock_tool_1,
                 "mock_tool_2": mock_tool_2,
             }
-            
+
             with patch("src.chat_assistant.load_dotenv"):
                 with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
                     assistant = Assistant()
-        
+
         return assistant
 
     def test_assistant_initialization(self, assistant: Assistant) -> None:
@@ -125,15 +125,15 @@ class TestAssistant:
     def test_assistant_tool_dicts_format(self, assistant: Assistant) -> None:
         """Test that tool_dicts are properly formatted."""
         tool_dicts = assistant.tool_dicts
-        
+
         assert len(tool_dicts) >= 2
 
         list_of_function_names = []
         for tool_dict in tool_dicts:
             assert tool_dict["type"] == "function"
             assert "function" in tool_dict
-            assert tool_dict["function"]["type"] == "function" # type: ignore
-            list_of_function_names.append(tool_dict["function"]["name"]) # type: ignore
+            assert tool_dict["function"]["type"] == "function"  # type: ignore
+            list_of_function_names.append(tool_dict["function"]["name"])  # type: ignore
         assert "mock_tool_1" in list_of_function_names
         assert "mock_tool_2" in list_of_function_names
 
@@ -143,17 +143,17 @@ class TestAssistant:
         mock_function = MagicMock()
         mock_function.name = "mock_tool_1"
         mock_function.arguments = json.dumps({"query": "test query"})
-        
+
         mock_tool_call = MagicMock(spec=ChatCompletionMessageFunctionToolCall)
         mock_tool_call.id = "call_123"
         mock_tool_call.type = "function"
         mock_tool_call.function = mock_function
-        
+
         mock_message = MagicMock(spec=ChatCompletionMessage)
         mock_message.tool_calls = [mock_tool_call]
-        
+
         tool_call, func_name, args, args_str = assistant.get_attributes_from_tool_call_message(mock_message)
-        
+
         assert tool_call == mock_tool_call
         assert func_name == "mock_tool_1"
         assert args == {"query": "test query"}
@@ -163,10 +163,10 @@ class TestAssistant:
         """Test extracting attributes when no tool calls present."""
         mock_message = MagicMock(spec=ChatCompletionMessage)
         mock_message.tool_calls = None
-        
+
         with patch("streamlit.error"):
             tool_call, func_name, args, args_str = assistant.get_attributes_from_tool_call_message(mock_message)
-        
+
         assert tool_call is None
         assert func_name == ""
         assert args == {}
@@ -176,13 +176,13 @@ class TestAssistant:
         """Test extracting attributes when function attribute is missing."""
         mock_tool_call = MagicMock()
         mock_tool_call.function = None
-        
+
         mock_message = MagicMock(spec=ChatCompletionMessage)
         mock_message.tool_calls = [mock_tool_call]
-        
+
         with patch("streamlit.error"):
             tool_call, func_name, args, args_str = assistant.get_attributes_from_tool_call_message(mock_message)
-        
+
         assert tool_call is None
         assert func_name == ""
         assert args == {}
@@ -194,42 +194,42 @@ class TestAssistant:
         mock_function = MagicMock()
         mock_function.name = "mock_tool_1"
         mock_function.arguments = json.dumps({"query": "test query"})
-        
+
         mock_tool_call = MagicMock(spec=ChatCompletionMessageFunctionToolCall)
         mock_tool_call.id = "call_123"
         mock_tool_call.type = "function"
         mock_tool_call.function = mock_function
-        
+
         mock_message = MagicMock(spec=ChatCompletionMessage)
         mock_message.tool_calls = [mock_tool_call]
-        
+
         with patch("streamlit.error"):
             result = assistant.handle_tools(mock_message)
-        
+
         # Tool should have been executed
-        assert assistant.tools["mock_tool_1"].last_query == "test query" # type: ignore
+        assert assistant.tools["mock_tool_1"].last_query == "test query"  # type: ignore
         assert "Mock tool 1 result for: test query" == result["answer_str"]
 
     def test_handle_tools_appends_to_history(self, assistant: Assistant) -> None:
         """Test that handle_tools appends messages to history."""
         initial_history_length = len(assistant.history)
-        
+
         # Create a mock tool call message
         mock_function = MagicMock()
         mock_function.name = "mock_tool_1"
         mock_function.arguments = json.dumps({"query": "test"})
-        
+
         mock_tool_call = MagicMock(spec=ChatCompletionMessageFunctionToolCall)
         mock_tool_call.id = "call_123"
         mock_tool_call.type = "function"
         mock_tool_call.function = mock_function
-        
+
         mock_message = MagicMock(spec=ChatCompletionMessage)
         mock_message.tool_calls = [mock_tool_call]
-        
+
         with patch("streamlit.error"):
             assistant.handle_tools(mock_message)
-        
+
         # Should have added assistant message and tool response
         assert len(assistant.history) == initial_history_length + 2
         assert assistant.history[-2]["role"] == "assistant"
@@ -239,26 +239,28 @@ class TestAssistant:
         """Test handle_tools when no tool call is present."""
         mock_message = MagicMock(spec=ChatCompletionMessage)
         mock_message.tool_calls = None
-        
+
         with patch("streamlit.error"):
             result = assistant.handle_tools(mock_message)
-        
+
         assert "Error: No tool call found" in result["answer_str"]
 
     def test_chat_with_tool_appends_user_message(self, assistant: Assistant) -> None:
         """Test that chat_with_tool appends user message to history."""
         initial_history_length = len(assistant.history)
-        
+
         with patch.object(assistant.openai.chat.completions, "create") as mock_create:
             mock_response = MagicMock()
-            mock_response.choices = [MagicMock(
-                finish_reason="stop",
-                message=MagicMock(content="Assistant response"),
-            )]
+            mock_response.choices = [
+                MagicMock(
+                    finish_reason="stop",
+                    message=MagicMock(content="Assistant response"),
+                )
+            ]
             mock_create.return_value = mock_response
-            
-            assistant.chat_with_tool("Hello assistant") # type: ignore
-        
+
+            assistant.chat_with_tool("Hello assistant")  # type: ignore
+
         assert len(assistant.history) > initial_history_length
         assert assistant.history[0]["role"] == "user"
         assert assistant.history[0]["content"] == "Hello assistant"
@@ -267,14 +269,16 @@ class TestAssistant:
         """Test that chat_with_tool calls openai with the correct parameters."""
         with patch.object(assistant.openai.chat.completions, "create") as mock_create:
             mock_response = MagicMock()
-            mock_response.choices = [MagicMock(
-                finish_reason="stop",
-                message=MagicMock(content="Response"),
-            )]
+            mock_response.choices = [
+                MagicMock(
+                    finish_reason="stop",
+                    message=MagicMock(content="Response"),
+                )
+            ]
             mock_create.return_value = mock_response
-            
-            assistant.chat_with_tool("Test message") # type: ignore
-            
+
+            assistant.chat_with_tool("Test message")  # type: ignore
+
             call_args = mock_create.call_args
             messages = call_args.kwargs["messages"]
             assert messages[0]["role"] == "system"
@@ -287,25 +291,27 @@ class TestAssistant:
         mock_function = MagicMock()
         mock_function.name = "mock_tool_1"
         mock_function.arguments = json.dumps({"query": "test"})
-        
+
         mock_tool_call = MagicMock(spec=ChatCompletionMessageFunctionToolCall)
         mock_tool_call.id = "call_123"
         mock_tool_call.type = "function"
         mock_tool_call.function = mock_function
-        
+
         with patch.object(assistant.openai.chat.completions, "create") as mock_create:
             mock_response = MagicMock()
             mock_message = MagicMock(spec=ChatCompletionMessage)
             mock_message.tool_calls = [mock_tool_call]
-            mock_response.choices = [MagicMock(
-                finish_reason="tool_calls",
-                message=mock_message,
-            )]
+            mock_response.choices = [
+                MagicMock(
+                    finish_reason="tool_calls",
+                    message=mock_message,
+                )
+            ]
             mock_create.return_value = mock_response
-            
+
             with patch("streamlit.error"):
-                assistant.chat_with_tool("Execute tool") # type: ignore
-        
+                assistant.chat_with_tool("Execute tool")  # type: ignore
+
         # Should have appended tool-related messages
         tool_messages = [msg for msg in assistant.history if msg["role"] == "tool"]
         assert len(tool_messages) > 0
@@ -314,14 +320,16 @@ class TestAssistant:
         """Test that chat_with_tool appends assistant response for non-tool messages."""
         with patch.object(assistant.openai.chat.completions, "create") as mock_create:
             mock_response = MagicMock()
-            mock_response.choices = [MagicMock(
-                finish_reason="stop",
-                message=MagicMock(content="Hello user!"),
-            )]
+            mock_response.choices = [
+                MagicMock(
+                    finish_reason="stop",
+                    message=MagicMock(content="Hello user!"),
+                )
+            ]
             mock_create.return_value = mock_response
-            
-            assistant.chat_with_tool("Test message") # type: ignore
-            
+
+            assistant.chat_with_tool("Test message")  # type: ignore
+
             # Should have user and assistant messages
             assistant_messages = [msg for msg in assistant.history if msg["role"] == "assistant"]
             assert len(assistant_messages) > 0
@@ -331,16 +339,18 @@ class TestAssistant:
         """Test that assistant maintains conversation history."""
         with patch.object(assistant.openai.chat.completions, "create") as mock_create:
             mock_response = MagicMock()
-            mock_response.choices = [MagicMock(
-                finish_reason="stop",
-                message=MagicMock(content="Response 1"),
-            )]
+            mock_response.choices = [
+                MagicMock(
+                    finish_reason="stop",
+                    message=MagicMock(content="Response 1"),
+                )
+            ]
             mock_create.return_value = mock_response
-            
-            assistant.chat_with_tool("Message 1") # type: ignore
+
+            assistant.chat_with_tool("Message 1")  # type: ignore
             assert len(assistant.history) == 2  # user + assistant
-            
-            assistant.chat_with_tool("Message 2") # type: ignore
+
+            assistant.chat_with_tool("Message 2")  # type: ignore
             assert len(assistant.history) == 4  # 2 + user + assistant
 
     def test_handle_tools_stores_correct_tool_call_id(self, assistant: Assistant) -> None:
@@ -348,18 +358,18 @@ class TestAssistant:
         mock_function = MagicMock()
         mock_function.name = "mock_tool_1"
         mock_function.arguments = json.dumps({"query": "test"})
-        
+
         mock_tool_call = MagicMock(spec=ChatCompletionMessageFunctionToolCall)
         mock_tool_call.id = "call_xyz_789"
         mock_tool_call.type = "function"
         mock_tool_call.function = mock_function
-        
+
         mock_message = MagicMock(spec=ChatCompletionMessage)
         mock_message.tool_calls = [mock_tool_call]
-        
+
         with patch("streamlit.error"):
             assistant.handle_tools(mock_message)
-        
+
         # Find the tool response in history
         tool_response = next(msg for msg in assistant.history if msg["role"] == "tool")
         assert tool_response["tool_call_id"] == "call_xyz_789"

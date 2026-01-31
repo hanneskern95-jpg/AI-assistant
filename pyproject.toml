@@ -37,7 +37,7 @@ line-length = 200
 target-version = "py311"
 
 # Enable Ruff’s linter, formatter, and import sorter
-extend-select = [
+lint.extend-select = [
     "E",     # pycodestyle
     "F",     # pyflakes
     "I",     # isort (import sorting)
@@ -57,17 +57,10 @@ indent-style = "space"
 quote-style = "double"
 skip-magic-trailing-comma = false
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["tools"]
 combine-as-imports = true
 force-sort-within-sections = true
-
-[tool.mypy]
-mypy_path = "src"
-python_version = "3.12"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = false
 
 [tool.pyright]
 pythonPath = "src"

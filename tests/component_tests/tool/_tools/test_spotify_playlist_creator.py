@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.tools._tools.spotify_playlist_creator import SpotifyTool
+from tools._tools.spotify_playlist_creator import SpotifyTool
 
 
 class TestSpotifyTool:
@@ -55,7 +55,7 @@ class TestSpotifyTool:
         mock_openai.chat.completions.create.return_value = mock_response
 
         # Mock create_playlist function
-        with patch("src.tools._tools.spotify_playlist_creator.spotify_playlist_creator.create_playlist") as mock_create:
+        with patch("tools._tools.spotify_playlist_creator.spotify_playlist_creator.create_playlist") as mock_create:
             result = tool.run_tool(description_playlist="A nice autumn day")
 
         # Assertions
@@ -80,8 +80,8 @@ class TestSpotifyTool:
 
         liked_songs: list[str] = ["Song 1 — Artist 1", "Song 2 — Artist 2"]
 
-        with patch("src.tools._tools.spotify_playlist_creator.spotify_playlist_creator.create_playlist") as mock_create:
-            with patch("src.tools._tools.spotify_playlist_creator.spotify_playlist_creator.catch_liked_songs", return_value=liked_songs):
+        with patch("tools._tools.spotify_playlist_creator.spotify_playlist_creator.create_playlist") as mock_create:
+            with patch("tools._tools.spotify_playlist_creator.spotify_playlist_creator.catch_liked_songs", return_value=liked_songs):
                 result = tool.run_tool(
                     description_playlist="Mix of new and liked songs",
                     use_liked_songs=True,
@@ -104,7 +104,7 @@ class TestSpotifyTool:
         ]
         mock_openai.chat.completions.create.return_value = mock_response
 
-        with patch("src.tools._tools.spotify_playlist_creator.spotify_playlist_creator.create_playlist"):
+        with patch("tools._tools.spotify_playlist_creator.spotify_playlist_creator.create_playlist"):
             tool.run_tool(description_playlist="Test playlist")
 
         # Verify OpenAI was called with correct model
@@ -128,7 +128,7 @@ class TestSpotifyTool:
         ]
         mock_openai.chat.completions.create.return_value = mock_response
 
-        with patch("src.tools._tools.spotify_playlist_creator.spotify_playlist_creator.create_playlist"):
+        with patch("tools._tools.spotify_playlist_creator.spotify_playlist_creator.create_playlist"):
             result = tool.run_tool(
                 description_playlist="A nice autumn day with California Dreaming and Green Day as inspiration",
             )
@@ -152,8 +152,8 @@ class TestSpotifyTool:
         ]
         mock_openai.chat.completions.create.return_value = mock_response
 
-        with patch("src.tools._tools.spotify_playlist_creator.spotify_playlist_creator.create_playlist"):
-            with patch("src.tools._tools.spotify_playlist_creator.spotify_playlist_creator.catch_liked_songs", return_value=[]):
+        with patch("tools._tools.spotify_playlist_creator.spotify_playlist_creator.create_playlist"):
+            with patch("tools._tools.spotify_playlist_creator.spotify_playlist_creator.catch_liked_songs", return_value=[]):
                 result = tool.run_tool(
                     description_playlist="Playlist description",
                     use_liked_songs=True,
@@ -213,8 +213,8 @@ class TestSpotifyTool:
 
         liked_songs: list[str] = ["Song 1 — Artist 1", "Song 2 — Artist 2"]
 
-        with patch("src.tools._tools.spotify_playlist_creator.spotify_playlist_creator.create_playlist"):
-            with patch("src.tools._tools.spotify_playlist_creator.spotify_playlist_creator.catch_liked_songs", return_value=liked_songs) as mock_catch:
+        with patch("tools._tools.spotify_playlist_creator.spotify_playlist_creator.create_playlist"):
+            with patch("tools._tools.spotify_playlist_creator.spotify_playlist_creator.catch_liked_songs", return_value=liked_songs) as mock_catch:
                 # First call
                 tool.run_tool(
                     description_playlist="Playlist 1",

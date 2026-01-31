@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.tools._tools.wikipedia_fact_checker import WikipediaFactCheckerTool
+from tools._tools.wikipedia_fact_checker import WikipediaFactCheckerTool
 
 
 class TestWikipediaFactCheckerTool:

@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.tools._tools.recipe_creator import RecipeSuggestTool
+from tools._tools.recipe_creator import RecipeSuggestTool
 
 
 class TestRecipeSuggestTool:

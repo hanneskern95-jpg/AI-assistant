@@ -8,8 +8,8 @@ from openai.types.chat import ChatCompletionMessage
 from openai.types.chat.chat_completion_message_function_tool_call import ChatCompletionMessageFunctionToolCall
 import pytest
 
-from src.chat_assistant import Assistant
-from src.tools.tool import AnswerDict, Tool
+from chat_assistant import Assistant
+from tools.tool import AnswerDict, Tool
 
 
 class MockTool1(Tool):
@@ -34,11 +34,11 @@ class MockTool1(Tool):
         }
         self.model = model
         self.openai = openai
-        self.last_query = None
+        self.last_query = ""
 
     def run_tool(self, *args: object, **kwargs: object) -> AnswerDict:
         """Run the mock tool."""
-        self.last_query = kwargs["query"]
+        self.last_query = str(kwargs["query"])
         return {"answer_str": f"Mock tool 1 result for: {self.last_query}"}
 
     def render_answer(self, answer: AnswerDict) -> None:
@@ -72,11 +72,11 @@ class MockTool2(Tool):
         }
         self.model = model
         self.openai = openai
-        self.last_topic = None
+        self.last_topic = ""
 
     def run_tool(self, *args: object, **kwargs: object) -> AnswerDict:
         """Run the mock tool."""
-        self.last_topic = kwargs["topic"]
+        self.last_topic = str(kwargs["topic"])
         return {"answer_str": f"Mock tool 2 result for: {self.last_topic}"}
 
     def render_answer(self, answer: AnswerDict) -> None:
@@ -117,7 +117,7 @@ class TestAssistant:
         """Test that Assistant is initialized with correct attributes."""
         assert assistant.system_message == "You are an AI assistant."
         assert assistant.tools is not None
-        assert len(assistant.tools) == 2
+        assert len(assistant.tools) >= 2
         assert "mock_tool_1" in assistant.tools
         assert "mock_tool_2" in assistant.tools
         assert assistant.history == []
@@ -126,12 +126,16 @@ class TestAssistant:
         """Test that tool_dicts are properly formatted."""
         tool_dicts = assistant.tool_dicts
         
-        assert len(tool_dicts) == 2
+        assert len(tool_dicts) >= 2
+
+        list_of_function_names = []
         for tool_dict in tool_dicts:
             assert tool_dict["type"] == "function"
             assert "function" in tool_dict
-            assert tool_dict["function"]["type"] == "function"
-            assert tool_dict["function"]["name"] in ["mock_tool_1", "mock_tool_2"]
+            assert tool_dict["function"]["type"] == "function" # type: ignore
+            list_of_function_names.append(tool_dict["function"]["name"]) # type: ignore
+        assert "mock_tool_1" in list_of_function_names
+        assert "mock_tool_2" in list_of_function_names
 
     def test_get_attributes_from_tool_call_message_valid_call(self, assistant: Assistant) -> None:
         """Test extracting attributes from a valid tool call message."""

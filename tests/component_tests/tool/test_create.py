@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 from openai import OpenAI
 import pytest
 
-from src.tools.create import _get_attributes, _get_subkwargs, create_tools
-from src.tools.tool import AnswerDict, Tool
+from tools.create import _get_attributes, _get_subkwargs, create_tools
+from tools.tool import AnswerDict, Tool
 
 
 class MockToolA(Tool):
@@ -124,14 +124,14 @@ class TestCreateTools:
 
     def test_registry_contains_mock_tools(self) -> None:
         """Test that the registry contains the mock tool classes."""
-        with patch("src.tools.create.registry", [MockToolA, MockToolB, MockToolC]):
-            from src.tools.create import registry
+        with patch("tools.create.registry", [MockToolA, MockToolB, MockToolC]):
+            from tools.create import registry
 
             assert MockToolA in registry
             assert MockToolB in registry
             assert MockToolC in registry
 
-    @patch("src.tools.create.registry", [MockToolA, MockToolB, MockToolC])
+    @patch("tools.create.registry", [MockToolA, MockToolB, MockToolC])
     def test_create_tools_initializes_all_tools(self, mock_openai: MagicMock) -> None:
         """Test that create_tools initializes all tools in the registry."""
         tools = create_tools(model="gpt-4o", openai=mock_openai)
@@ -141,7 +141,7 @@ class TestCreateTools:
         assert "mock_tool_b" in tools
         assert "mock_tool_c" in tools
 
-    @patch("src.tools.create.registry", [MockToolA, MockToolB, MockToolC])
+    @patch("tools.create.registry", [MockToolA, MockToolB, MockToolC])
     def test_create_tools_returns_tool_instances(self, mock_openai: MagicMock) -> None:
         """Test that create_tools returns instances of the correct types."""
         tools = create_tools(model="gpt-4o", openai=mock_openai)
@@ -150,7 +150,7 @@ class TestCreateTools:
         assert isinstance(tools["mock_tool_b"], MockToolB)
         assert isinstance(tools["mock_tool_c"], MockToolC)
 
-    @patch("src.tools.create.registry", [MockToolA, MockToolB, MockToolC])
+    @patch("tools.create.registry", [MockToolA, MockToolB, MockToolC])
     def test_create_tools_passes_correct_kwargs_to_each_tool(self, mock_openai: MagicMock) -> None:
         """Test that each tool receives only the kwargs it needs."""
         tools = create_tools(model="gpt-4o", openai=mock_openai, extra_param="ignored")
@@ -169,19 +169,19 @@ class TestCreateTools:
 
     def test_create_tools_with_empty_registry(self) -> None:
         """Test create_tools with an empty registry."""
-        with patch("src.tools.create.registry", []):
+        with patch("tools.create.registry", []):
             tools = create_tools(model="gpt-4o")
 
         assert tools == {}
 
-    @patch("src.tools.create.registry", [MockToolA, MockToolB])
+    @patch("tools.create.registry", [MockToolA, MockToolB])
     def test_create_tools_with_partial_kwargs(self, mock_openai: MagicMock) -> None:
         """Test create_tools when only some tools receive their required kwargs. In this case, we expect it to throw a KeyError"""
         # MockToolA should raise KeyError (needs openai which is not provided)
         with pytest.raises(KeyError):
             create_tools(model="gpt-4o")
 
-    @patch("src.tools.create.registry", [MockToolA, MockToolB, MockToolC])
+    @patch("tools.create.registry", [MockToolA, MockToolB, MockToolC])
     def test_create_tools_can_run_tools(self, mock_openai: MagicMock) -> None:
         """Test that created tools can be executed."""
         tools = create_tools(model="gpt-4o", openai=mock_openai)
@@ -194,7 +194,7 @@ class TestCreateTools:
         assert result_b["answer_str"] == "Mock B executed"
         assert result_c["answer_str"] == "Mock C executed"
 
-    @patch("src.tools.create.registry", [MockToolA, MockToolB, MockToolC])
+    @patch("tools.create.registry", [MockToolA, MockToolB, MockToolC])
     def test_create_tools_with_extra_kwargs(self, mock_openai: MagicMock) -> None:
         """Test that create_tools ignores extra kwargs not used by any tool."""
         tools = create_tools(

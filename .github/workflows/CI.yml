@@ -6,7 +6,7 @@ on:
     
 
 jobs:
-  test:
+  status_checks:
     runs-on: ubuntu-latest
 
     steps:

@@ -1,9 +1,7 @@
 dotenv
 openai
-gradio>=6.0.0
 spotipy
 bs4
 streamlit
 streamlit-notify
-SpeechRecognition
 SpeechRecognition[audio]

@@ -26,8 +26,7 @@ jobs:
         run: ruff check .
 
       - name: Mypy
-        run: mypy src
-        run: mypy tests
+        run: mypy src && mypy tests
 
       - name: Pytest
         run: pytest

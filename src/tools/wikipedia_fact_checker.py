@@ -14,8 +14,7 @@ import re
 from openai import OpenAI
 
 from ai_utils import get_response_text
-
-from ..tool import AnswerDict, Tool
+from tool_base import AnswerDict, Tool
 
 
 class WikipediaFactCheckerTool(Tool):

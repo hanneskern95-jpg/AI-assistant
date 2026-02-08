@@ -14,8 +14,7 @@ from openai import OpenAI
 import streamlit as st
 
 from ai_utils import get_response_text
-
-from ..tool import AnswerDict, Tool
+from tool_base import AnswerDict, Tool
 
 
 class Recipe(TypedDict):

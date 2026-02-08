@@ -13,8 +13,8 @@ from typing import TYPE_CHECKING
 from openai import OpenAI
 
 from ai_utils import get_response_text_from_chatcompletion
+from tool_base import AnswerDict, Tool
 
-from ...tool import AnswerDict, Tool
 from .spotify import catch_liked_songs, create_playlist
 
 if TYPE_CHECKING:

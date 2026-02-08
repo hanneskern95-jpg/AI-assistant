@@ -17,7 +17,8 @@ class declares, ignoring any extra keys in the provided kwargs.
 import inspect
 from typing import Any
 
-from .tool import Tool, registry  # registry is filled after _tools is imported
+from tool_base import Tool, registry  # registry is filled after _tools is imported
+import tools  # noqa: F401 Import all tool modules to populate the registry
 
 
 def _get_subkwargs(kwargs: dict, keys: list[str]) -> dict:

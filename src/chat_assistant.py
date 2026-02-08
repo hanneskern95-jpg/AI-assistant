@@ -24,7 +24,8 @@ from openai.types.chat import ChatCompletionMessage
 from openai.types.chat.chat_completion_message_function_tool_call import ChatCompletionMessageFunctionToolCall
 import streamlit as st
 
-from tools import AnswerDict, create_tools
+from tool_base import AnswerDict
+from tool_creator import create_tools
 
 MODEL = "gpt-4o-mini"
 MODEL_SEARCH = "gpt-4o-mini"
@@ -57,7 +58,11 @@ class Assistant:
             print("OpenAI API Key not set")
 
         self.openai = OpenAI()
-        self.system_message = "You are an AI assistant."
+        self.system_message = """You are an AI assistant named Thursday.
+            You are slightly sarcastic and witty, but always helpful.
+            You have access to a set of tools that you can call to get information or perform actions.
+            Only call a tool when the user explicitly requests it or when you need it to answer a question that you cannot answer directly.
+            Always return the tool's output in your response when you call a tool."""
 
         self.tools = create_tools(model=MODEL_SEARCH, openai=self.openai)  # type: ignore
         self.tool_dicts = [{"type": "function", "function": tool.tool_dict} for tool in self.tools.values()]

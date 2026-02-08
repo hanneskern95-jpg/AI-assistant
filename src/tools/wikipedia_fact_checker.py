@@ -14,8 +14,7 @@ import re
 from openai import OpenAI
 
 from ai_utils import get_response_text
-
-from ..tool import AnswerDict, Tool
+from tool_base import AnswerDict, Tool
 
 
 class WikipediaFactCheckerTool(Tool):
@@ -92,7 +91,7 @@ class WikipediaFactCheckerTool(Tool):
         Returns:
             str: The cleaned JSON string.
         """
-        return re.sub(r"^```(?:json)?|```$", "", raw_str.strip(), flags=re.MULTILINE).strip()
+        return re.sub(r"^```(?:json)?$|^```$", "", raw_str.strip(), flags=re.MULTILINE).strip()
 
     def _create_answer(self, answer_dict: dict) -> AnswerDict:
         """Convert the structured result into an ``AnswerDict`` for rendering.

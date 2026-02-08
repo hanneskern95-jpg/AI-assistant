@@ -91,7 +91,7 @@ class WikipediaFactCheckerTool(Tool):
         Returns:
             str: The cleaned JSON string.
         """
-        return re.sub(r"(?:^```(?:json)?|```$)", "", raw_str.strip(), flags=re.MULTILINE).strip()
+        return re.sub(r"^```(?:json)?$|^```$", "", raw_str.strip(), flags=re.MULTILINE).strip()
 
     def _create_answer(self, answer_dict: dict) -> AnswerDict:
         """Convert the structured result into an ``AnswerDict`` for rendering.

@@ -118,7 +118,7 @@ class RecipeSuggestTool(Tool):
         Returns:
             str: Cleaned string without code fences.
         """
-        return re.sub(r"(?:^```(?:json)?|```$)", "", raw_str.strip(), flags=re.MULTILINE).strip()
+        return re.sub(r"^```(?:json)?$|^```$", "", raw_str.strip(), flags=re.MULTILINE).strip()
 
     def _render_recipe(self, recipe: Recipe, index: int | None) -> st.delta_generator.DeltaGenerator:  # type: ignore
         """Render a single recipe into the Streamlit UI.

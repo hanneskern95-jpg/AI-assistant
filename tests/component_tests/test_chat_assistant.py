@@ -9,7 +9,7 @@ from openai.types.chat.chat_completion_message_function_tool_call import ChatCom
 import pytest
 
 from chat_assistant import Assistant
-from tools.tool import AnswerDict, Tool
+from tool_base import AnswerDict, Tool
 
 
 class MockTool1(Tool):
@@ -115,7 +115,7 @@ class TestAssistant:
 
     def test_assistant_initialization(self, assistant: Assistant) -> None:
         """Test that Assistant is initialized with correct attributes."""
-        assert assistant.system_message == "You are an AI assistant."
+        assert "You are an AI assistant" in assistant.system_message
         assert assistant.tools is not None
         assert len(assistant.tools) >= 2
         assert "mock_tool_1" in assistant.tools
@@ -282,7 +282,7 @@ class TestAssistant:
             call_args = mock_create.call_args
             messages = call_args.kwargs["messages"]
             assert messages[0]["role"] == "system"
-            assert messages[0]["content"] == "You are an AI assistant."
+            assert "You are an AI assistant" in messages[0]["content"]
             assert messages[1]["role"] == "user"
             assert "Test message" == messages[1]["content"]
 

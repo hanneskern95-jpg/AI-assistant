@@ -1,7 +1,7 @@
 """Create and initialize tool instances from the `_tools` package.
 
 This module provides helpers to build a dictionary of tool instances
-based on the `registry` exported by ``tools.tool``. Each entry in the
+based on the `registry` exported by ``tool_base.tool_base``. Each entry in the
 registry is a tool class; ``create_tools`` inspects the constructor
 parameters of each tool class and initializes it using a filtered set
 of keyword arguments supplied by the caller.

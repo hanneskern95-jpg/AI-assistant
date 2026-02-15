@@ -82,7 +82,7 @@ def create_tools(list_of_loaded_groups: list[str], **kwargs: object) -> dict[str
     """
     initialized_objects: dict[str, Tool] = {}
     for cls in registry:
-        if cls.group not in list_of_loaded_groups:
+        if not hasattr(cls, "group") or cls.group not in list_of_loaded_groups:
             continue
         keys = _get_attributes(cls)
         filtered_kwargs = _get_subkwargs(kwargs=kwargs, keys=keys)

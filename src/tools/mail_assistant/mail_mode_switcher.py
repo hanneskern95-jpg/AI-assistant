@@ -1,0 +1,1 @@
+#A tool, which can activate the mail mode.

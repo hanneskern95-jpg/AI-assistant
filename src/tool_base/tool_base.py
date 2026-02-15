@@ -59,9 +59,14 @@ class Tool(metaclass=AutoRegister):
     ``run_tool`` to perform the tool's operation. The metaclass will
     automatically register subclasses in ``registry`` so they can be
     discovered by `create_tools`.
+
+    All tools belong to a group. The default group is called "general", 
+    and is loaded by the chat assistant itself. Child classes of the 
+    chat assistant might load different groups.
     """
 
     tool_dict: ToolDict
+    group: str = "general"
 
     def run_tool(self, *args: object, **kwargs: object) -> AnswerDict:
         """Execute the tool with the provided arguments.

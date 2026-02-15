@@ -57,15 +57,19 @@ def _get_attributes(class_to_inspect: type[Tool]) -> list[Any]:
     return list(inspect.signature(class_to_inspect).parameters)
 
 
-def create_tools(**kwargs: object) -> dict[str, Tool]:
+def create_tools(list_of_loaded_groups: list[str], **kwargs: object) -> dict[str, Tool]:
     """Instantiate all tools registered in ``tools.tool.registry``.
 
     For each tool class in the central registry this function determines
     which of the provided ``kwargs`` apply to that class' constructor,
     instantiates the class with the filtered arguments, and returns a
     mapping from tool name to the initialized tool instance.
+    Only classes whose ``group`` attribute is included in the provided 
+    ``list_of_loaded_groups`` are initialized and returned.
 
     Args:
+        list_of_loaded_groups (list[str]): A list of tool groups that get 
+            loaded in the chat assistant.
         **kwargs: Arbitrary keyword arguments that may be required by
             one or more tool constructors (for example ``model`` or
             ``openai``). Only parameters matching a given tool's
@@ -78,6 +82,8 @@ def create_tools(**kwargs: object) -> dict[str, Tool]:
     """
     initialized_objects: dict[str, Tool] = {}
     for cls in registry:
+        if cls.group not in list_of_loaded_groups:
+            continue
         keys = _get_attributes(cls)
         filtered_kwargs = _get_subkwargs(kwargs=kwargs, keys=keys)
         obj = cls(**filtered_kwargs)

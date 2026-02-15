@@ -48,6 +48,9 @@ class Assistant:
         tool_dicts (list): Tool metadata used when calling the model.
         history (list[dict]): Conversation history as a list of message
             dicts compatible with the chat API.
+        list_of_loaded_groups: list[str]: A list of tool groups that get loaded in the chat assistant. 
+            The default group is "general", which is loaded by default. 
+            Child classes of the chat assistant might load different groups.
     """
 
     load_dotenv(override=True)
@@ -64,7 +67,9 @@ class Assistant:
             Only call a tool when the user explicitly requests it or when you need it to answer a question that you cannot answer directly.
             Always return the tool's output in your response when you call a tool."""
 
-        self.tools = create_tools(model=MODEL_SEARCH, openai=self.openai)  # type: ignore
+        
+        list_of_loaded_groups: list[str] = ["general"]
+        self.tools = create_tools(list_of_loaded_groups=list_of_loaded_groups, model=MODEL_SEARCH, openai=self.openai)  # type: ignore
         self.tool_dicts = [{"type": "function", "function": tool.tool_dict} for tool in self.tools.values()]
         self.history: list[dict] = []
 

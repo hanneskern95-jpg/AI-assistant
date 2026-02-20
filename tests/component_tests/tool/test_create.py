@@ -12,6 +12,8 @@ from tool_creator.create import _get_attributes, _get_subkwargs, create_tools
 class MockToolA(Tool):
     """Mock tool class A for testing."""
 
+    group = "test"
+
     def __init__(self, model: str, openai: OpenAI) -> None:
         """Initialize MockToolA."""
         self.tool_dict = {
@@ -31,6 +33,8 @@ class MockToolA(Tool):
 class MockToolB(Tool):
     """Mock tool class B for testing."""
 
+    group = "test"
+
     def __init__(self, model: str) -> None:
         """Initialize MockToolB."""
         self.tool_dict = {
@@ -49,6 +53,8 @@ class MockToolB(Tool):
 class MockToolC(Tool):
     """Mock tool class C for testing."""
 
+    group = "test"
+
     def __init__(self, openai: OpenAI) -> None:
         """Initialize MockToolC."""
         self.tool_dict = {
@@ -66,6 +72,8 @@ class MockToolC(Tool):
 
 class TestCreateTools:
     """Component tests for the create_tools function."""
+
+    list_of_loaded_groups = ["test"]
 
     @pytest.fixture
     def mock_openai(self) -> MagicMock:
@@ -134,7 +142,7 @@ class TestCreateTools:
     @patch("tool_creator.create.registry", [MockToolA, MockToolB, MockToolC])
     def test_create_tools_initializes_all_tools(self, mock_openai: MagicMock) -> None:
         """Test that create_tools initializes all tools in the registry."""
-        tools = create_tools(model="gpt-4o", openai=mock_openai)
+        tools = create_tools(list_of_loaded_groups=self.list_of_loaded_groups, model="gpt-4o", openai=mock_openai)
 
         assert len(tools) == 3
         assert "mock_tool_a" in tools
@@ -144,7 +152,7 @@ class TestCreateTools:
     @patch("tool_base.registry", [MockToolA, MockToolB, MockToolC])
     def test_create_tools_returns_tool_instances(self, mock_openai: MagicMock) -> None:
         """Test that create_tools returns instances of the correct types."""
-        tools = create_tools(model="gpt-4o", openai=mock_openai)
+        tools = create_tools(list_of_loaded_groups=self.list_of_loaded_groups, model="gpt-4o", openai=mock_openai)
 
         assert isinstance(tools["mock_tool_a"], MockToolA)
         assert isinstance(tools["mock_tool_b"], MockToolB)
@@ -153,7 +161,7 @@ class TestCreateTools:
     @patch("tool_base.registry", [MockToolA, MockToolB, MockToolC])
     def test_create_tools_passes_correct_kwargs_to_each_tool(self, mock_openai: MagicMock) -> None:
         """Test that each tool receives only the kwargs it needs."""
-        tools = create_tools(model="gpt-4o", openai=mock_openai, extra_param="ignored")
+        tools = create_tools(list_of_loaded_groups=self.list_of_loaded_groups, model="gpt-4o", openai=mock_openai, extra_param="ignored")
 
         # MockToolA requires model and openai
         assert tools["mock_tool_a"].model == "gpt-4o"  # type: ignore
@@ -170,7 +178,7 @@ class TestCreateTools:
     def test_create_tools_with_empty_registry(self) -> None:
         """Test create_tools with an empty registry."""
         with patch("tool_creator.create.registry", []):
-            tools = create_tools(model="gpt-4o")
+            tools = create_tools(list_of_loaded_groups=self.list_of_loaded_groups, model="gpt-4o")
 
         assert tools == {}
 
@@ -179,12 +187,12 @@ class TestCreateTools:
         """Test create_tools when only some tools receive their required kwargs. In this case, we expect it to throw a KeyError"""
         # MockToolA should raise KeyError (needs openai which is not provided)
         with pytest.raises(KeyError):
-            create_tools(model="gpt-4o")
+            create_tools(list_of_loaded_groups=self.list_of_loaded_groups, model="gpt-4o")
 
     @patch("tool_base.registry", [MockToolA, MockToolB, MockToolC])
     def test_create_tools_can_run_tools(self, mock_openai: MagicMock) -> None:
         """Test that created tools can be executed."""
-        tools = create_tools(model="gpt-4o", openai=mock_openai)
+        tools = create_tools(list_of_loaded_groups=self.list_of_loaded_groups, model="gpt-4o", openai=mock_openai)
 
         result_a = tools["mock_tool_a"].run_tool()
         result_b = tools["mock_tool_b"].run_tool()
@@ -197,7 +205,7 @@ class TestCreateTools:
     @patch("tool_creator.create.registry", [MockToolA, MockToolB, MockToolC])
     def test_create_tools_with_extra_kwargs(self, mock_openai: MagicMock) -> None:
         """Test that create_tools ignores extra kwargs not used by any tool."""
-        tools = create_tools(
+        tools = create_tools(list_of_loaded_groups=self.list_of_loaded_groups,
             model="gpt-4o",
             openai=mock_openai,
             unused_param1="value1",

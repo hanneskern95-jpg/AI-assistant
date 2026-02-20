@@ -25,7 +25,7 @@ from openai.types.chat.chat_completion_message_function_tool_call import ChatCom
 import streamlit as st
 
 from tool_base import AnswerDict
-from tool_creator import create_tools
+from tool_creator.create import create_tools
 
 MODEL = "gpt-4o-mini"
 MODEL_SEARCH = "gpt-4o-mini"

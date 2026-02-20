@@ -15,21 +15,6 @@ import streamlit_notify as stn
 registry: list[type] = []
 
 
-class AutoRegister(type):
-    """Metaclass that auto-registers Tool subclasses.
-
-    Any class that uses this metaclass and is defined in the
-    ``tools._tools`` package will be appended to the module-level
-    ``registry`` list upon class creation. The base ``Tool`` class is
-    excluded from registration.
-    """
-
-    def __init__(cls, name: str, bases: tuple, attrs: dict[str, Any]) -> None:
-        if name != "Tool":
-            registry.append(cls)
-        super().__init__(name, bases, attrs)
-
-
 class ToolDict(TypedDict):
     """TypedDict describing a tool's metadata dictionary.
 
@@ -51,14 +36,13 @@ class AnswerDict(TypedDict):
     answer_str: str
 
 
-class Tool(metaclass=AutoRegister):
+class Tool:
     """Abstract base class for concrete tool implementations.
 
     Concrete tool classes should inherit from this base and provide a
     ``tool_dict`` attribute describing the tool and implement
-    ``run_tool`` to perform the tool's operation. The metaclass will
-    automatically register subclasses in ``registry`` so they can be
-    discovered by `create_tools`.
+    ``run_tool`` to perform the tool's operation. Subclasses will automatically 
+    be put in the list ``registry`` so they can be discovered by `create_tools`.
 
     All tools belong to a group. The default group is called "general", 
     and is loaded by the chat assistant itself. Child classes of the 
@@ -67,6 +51,10 @@ class Tool(metaclass=AutoRegister):
 
     tool_dict: ToolDict
     group: str = "general"
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        registry.append(cls)
+        super().__init_subclass__(**kwargs)
 
     def run_tool(self, *args: object, **kwargs: object) -> AnswerDict:
         """Execute the tool with the provided arguments.

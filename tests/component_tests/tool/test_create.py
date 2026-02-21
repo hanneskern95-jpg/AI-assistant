@@ -6,7 +6,7 @@ from openai import OpenAI
 import pytest
 
 from tool_base import AnswerDict, Tool
-from tool_creator.create import _get_attributes, _get_subkwargs, create_tools
+from tool_loader.create import _get_attributes, _get_subkwargs, create_tools
 
 
 class MockToolA(Tool):
@@ -133,13 +133,13 @@ class TestCreateTools:
     def test_registry_contains_mock_tools(self) -> None:
         """Test that the registry contains the mock tool classes."""
         with patch("tool_base.registry", [MockToolA, MockToolB, MockToolC]):
-            from tool_creator.create import registry
+            from tool_loader.create import registry
 
             assert MockToolA in registry
             assert MockToolB in registry
             assert MockToolC in registry
 
-    @patch("tool_creator.create.registry", [MockToolA, MockToolB, MockToolC])
+    @patch("tool_loader.create.registry", [MockToolA, MockToolB, MockToolC])
     def test_create_tools_initializes_all_tools(self, mock_openai: MagicMock) -> None:
         """Test that create_tools initializes all tools in the registry."""
         tools = create_tools(list_of_loaded_groups=self.list_of_loaded_groups, model="gpt-4o", openai=mock_openai)
@@ -177,7 +177,7 @@ class TestCreateTools:
 
     def test_create_tools_with_empty_registry(self) -> None:
         """Test create_tools with an empty registry."""
-        with patch("tool_creator.create.registry", []):
+        with patch("tool_loader.create.registry", []):
             tools = create_tools(list_of_loaded_groups=self.list_of_loaded_groups, model="gpt-4o")
 
         assert tools == {}
@@ -202,7 +202,7 @@ class TestCreateTools:
         assert result_b["answer_str"] == "Mock B executed"
         assert result_c["answer_str"] == "Mock C executed"
 
-    @patch("tool_creator.create.registry", [MockToolA, MockToolB, MockToolC])
+    @patch("tool_loader.create.registry", [MockToolA, MockToolB, MockToolC])
     def test_create_tools_with_extra_kwargs(self, mock_openai: MagicMock) -> None:
         """Test that create_tools ignores extra kwargs not used by any tool."""
         tools = create_tools(list_of_loaded_groups=self.list_of_loaded_groups,

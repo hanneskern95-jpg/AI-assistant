@@ -73,7 +73,7 @@ class MockToolC(Tool):
 class TestCreateTools:
     """Component tests for the create_tools function."""
 
-    list_of_loaded_groups = ["test"]
+    list_of_loaded_groups = ["test"]  # noqa: RUF012
 
     @pytest.fixture
     def mock_openai(self) -> MagicMock:

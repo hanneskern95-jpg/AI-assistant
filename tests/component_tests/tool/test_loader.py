@@ -1,5 +1,5 @@
-from src.tool_base.tool_base import Tool
-from src.tool_loader.loader import ToolLoader
+from tool_base.tool_base import Tool
+from tool_loader.loader import ToolLoader
 
 
 class DummyTool(Tool):

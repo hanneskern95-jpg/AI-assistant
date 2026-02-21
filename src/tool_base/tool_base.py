@@ -6,7 +6,7 @@ metaclass that automatically registers concrete tool classes in the
 implementations.
 """
 
-from typing import Any, TypedDict
+from typing import TypedDict
 
 import streamlit as st
 import streamlit_notify as stn
@@ -52,7 +52,7 @@ class Tool:
     tool_dict: ToolDict
     group: str = "general"
 
-    def __init_subclass__(cls, **kwargs: Any) -> None:
+    def __init_subclass__(cls, **kwargs: object) -> None:
         registry.append(cls)
         super().__init_subclass__(**kwargs)
 

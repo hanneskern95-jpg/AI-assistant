@@ -12,7 +12,7 @@ import speech_recognition as sr
 import streamlit as st
 import streamlit_notify as stn
 
-from chat_assistant import Assistant
+from chat_assistant.master_chat_assistant import MasterAssistant
 
 
 def _switch_input_mode() -> None:
@@ -127,7 +127,7 @@ def show_chat() -> None:
 
 if __name__ == "__main__":
     if "chat_assistant" not in st.session_state:
-        st.session_state["chat_assistant"] = Assistant()
+        st.session_state["chat_assistant"] = MasterAssistant()
     if "pinned_object" not in st.session_state:
         st.session_state["pinned_object"] = None
     if "input_mode" not in st.session_state:

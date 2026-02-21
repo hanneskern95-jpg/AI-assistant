@@ -8,7 +8,7 @@ from openai.types.chat import ChatCompletionMessage
 from openai.types.chat.chat_completion_message_function_tool_call import ChatCompletionMessageFunctionToolCall
 import pytest
 
-from chat_assistant import Assistant
+from chat_assistant.master_chat_assistant import Assistant
 from tool_base import AnswerDict, Tool
 
 
@@ -99,7 +99,7 @@ class TestAssistant:
     @pytest.fixture
     def assistant(self) -> Assistant:
         """Create an Assistant instance with mocked dependencies."""
-        with patch("src.chat_assistant.create_tools") as mock_create_tools:
+        with patch("src.chat_assistant.master_chat_assistant.create_tools") as mock_create_tools:
             mock_tool_1 = MockTool1(model="gpt-4o-mini", openai=MagicMock())
             mock_tool_2 = MockTool2(model="gpt-4o-mini", openai=MagicMock())
             mock_create_tools.return_value = {
@@ -107,7 +107,7 @@ class TestAssistant:
                 "mock_tool_2": mock_tool_2,
             }
 
-            with patch("src.chat_assistant.load_dotenv"):
+            with patch("src.chat_assistant.master_chat_assistant.load_dotenv"):
                 with patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"}):
                     assistant = Assistant()
 

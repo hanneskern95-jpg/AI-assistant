@@ -1,10 +1,13 @@
-"""Assistant module.
+"""Base Assistant module
 
-This module implements the `Assistant` class which wraps an OpenAI
-chat client and a set of tools. It manages conversation history,
-dispatches model responses, handles function/tool calls returned by the
-model, and renders answers using Streamlit utilities exposed by the
-tool implementations.
+This module implements the `BaseAssistant` class which wraps an OpenAI
+chat client. To avoid circular imports, it does not implement tools on 
+its own, but either gets them during initialization or gets them from 
+the ToolLoader with a list of groups.
+
+It manages conversation history,dispatches model responses, handles 
+function/tool calls returned by themodel, and renders answers using 
+Streamlit utilities exposed by the tool implementations.
 
 Dependencies:
     - `openai` for the chat completions API
@@ -24,18 +27,20 @@ from openai.types.chat import ChatCompletionMessage
 from openai.types.chat.chat_completion_message_function_tool_call import ChatCompletionMessageFunctionToolCall
 import streamlit as st
 
-from tool_base import AnswerDict
-from tool_creator.create import create_tools
-
-MODEL = "gpt-4o-mini"
-MODEL_SEARCH = "gpt-4o-mini"
+from tool_base import AnswerDict, Tool
+from tool_loader.loader import ToolLoader
 
 
-class Assistant:
-    """A conversational assistant that can call external tools.
+class BaseAssistant:
+    """Base class for conversational assistant that can call external tools.
 
-    The `Assistant` encapsulates an OpenAI chat client and a collection
-    of tool wrappers. It maintains a conversation history compatible
+    The `BaseAssistant` encapsulates an OpenAI chat client and a collection
+    of tool wrappers. To avoid circular imports, it does not implement tools
+    on its own, but either gets them during initialization or gets them from 
+    the ToolLoader with a list of groups. At least one of these must be provided 
+    during initialization. If both a list of groups and a dict of tools is 
+    provided during initialization, the provided tools will be used.
+    It maintains a conversation history compatible
     with OpenAI's chat API, detects tool/function calls returned by
     the model, executes the corresponding tool, and appends tool
     outputs back into the history for subsequent messages.
@@ -55,21 +60,37 @@ class Assistant:
 
     load_dotenv(override=True)
 
-    def __init__(self) -> None:
+    def __init__(
+            self, 
+            tools: dict[str, Tool] | None = None, 
+            system_message: str = "You are an AI assistant.", 
+            model: str = "gpt-4o-mini",
+            list_of_loaded_groups: list[str] | None = None,
+            tool_loader: ToolLoader | None = None,
+            ) -> None:
+    
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         if not self.openai_api_key:
             print("OpenAI API Key not set")
-
         self.openai = OpenAI()
-        self.system_message = """You are an AI assistant named Thursday.
-            You are slightly sarcastic and witty, but always helpful.
-            You have access to a set of tools that you can call to get information or perform actions.
-            Only call a tool when the user explicitly requests it or when you need it to answer a question that you cannot answer directly.
-            Always return the tool's output in your response when you call a tool."""
+        self.system_message = system_message
+        self.model = model
 
-        
-        list_of_loaded_groups: list[str] = ["general"]
-        self.tools = create_tools(list_of_loaded_groups=list_of_loaded_groups, model=MODEL_SEARCH, openai=self.openai)  # type: ignore
+        #if tools are provided, we use them and ignore the tool_loader and list_of_loaded_groups. If tools are not provided, we use the tool_loader and list_of_loaded_groups to load the tools. 
+        # If neither are provided, we raise an error.
+        if tools is not None:
+            self.tools = tools
+            self.list_of_loaded_groups = None
+            self.tool_loader = None
+        else:
+            self.list_of_loaded_groups = list_of_loaded_groups if list_of_loaded_groups is not None else ["general"]
+            self.tool_loader = tool_loader
+
+            if self.tool_loader is None:
+                raise ValueError("Either tools or tool_loader must be provided.")
+
+            self.tools = self.tool_loader.load_tools(list_of_loaded_groups=self.list_of_loaded_groups)
+
         self.tool_dicts = [{"type": "function", "function": tool.tool_dict} for tool in self.tools.values()]
         self.history: list[dict] = []
 
@@ -164,7 +185,7 @@ class Assistant:
         # Append the user message to the shared history attribute
         self.history.append({"role": "user", "content": message})
         messages = [{"role": "system", "content": self.system_message}, *self.history]
-        response = self.openai.chat.completions.create(model=MODEL, messages=messages, tools=self.tool_dicts)  # type: ignore
+        response = self.openai.chat.completions.create(model=self.model, messages=messages, tools=self.tool_dicts)  # type: ignore
 
         if response.choices[0].finish_reason == "tool_calls":
             self.handle_tools(response.choices[0].message)

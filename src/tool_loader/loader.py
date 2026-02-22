@@ -4,13 +4,21 @@ from tool_base import Tool
 class ToolLoader:
     """A class responsible for loading tools based on specified groups."""
 
-    def __init__(self, all_available_tools: dict[str, Tool]) -> None:
+    def __init__(self, all_available_tools: dict[str, Tool] | None = None) -> None:
         """Initialize the ToolLoader with a dictionary of all available tools.
 
         Args:
             all_available_tools (dict[str, Tool]): A dictionary mapping tool names to their corresponding tool instances.
         """
         self.all_available_tools = all_available_tools
+
+    def update_tools(self, new_tools: dict[str, Tool]) -> None:
+        """Update the existing tools with new tools.
+
+        Args:
+            new_tools (dict[str, Tool]): A dictionary of new tools to add or update in the existing tools.
+        """
+        self.all_available_tools = new_tools
 
     def load_tools(self, list_of_loaded_groups: list[str]) -> dict[str, Tool]:
         """Load tools based on the specified groups.
@@ -21,6 +29,8 @@ class ToolLoader:
         Returns:
             dict[str, Tool]: A dictionary of loaded tools that belong to the specified groups.
         """
+        if self.all_available_tools is None:
+            raise ValueError("No tools available to load. Please initialize with a dictionary of tools.")
         loaded_tools = {}
         for tool_name, tool in self.all_available_tools.items():
             if tool.group in list_of_loaded_groups:

@@ -94,6 +94,8 @@ class BaseAssistant:
         self.tool_dicts = [{"type": "function", "function": tool.tool_dict} for tool in self.tools.values()]
         self.history: list[dict] = []
 
+        self.add_tools_to_session_state()
+
     def get_attributes_from_tool_call_message(self, message: ChatCompletionMessage) -> tuple[ChatCompletionMessageFunctionToolCall | None, str, dict, str]:
         """Extract tool call attributes from a model message.
 
@@ -124,7 +126,7 @@ class BaseAssistant:
         arguments_str = tool_call.function.arguments  # type: ignore
         return tool_call, tool_call.function.name, json.loads(arguments_str), arguments_str  # type: ignore
 
-    def handle_tools(self, message: ChatCompletionMessage) -> AnswerDict:
+    def handle_tools(self, message: ChatCompletionMessage) -> list[dict]:
         """Execute a tool call returned by the model and append results.
 
         This method extracts the first tool call from `message`, records
@@ -143,10 +145,9 @@ class BaseAssistant:
         """
         tool_call, function_name, arguments, arguments_str = self.get_attributes_from_tool_call_message(message)
         if tool_call is None:
-            return {"answer_str": "Error: No tool call found."}
-
-        self.history.append(
-            {
+            return [{"role": "assistant", "content": "Error: No tool call found."}]
+        
+        tool_call_dict = {
                 "role": "assistant",
                 "content": "",
                 "tool_calls": [
@@ -160,13 +161,19 @@ class BaseAssistant:
                     },
                 ],
             }
-        )
-
-        tool_answer = self.tools[function_name].run_tool(**arguments)
-        self.history.append({"role": "tool", "content": "", "tool_answer": tool_answer, "tool_name": function_name, "tool_call_id": tool_call.id})
-        return tool_answer
-
-    def chat_with_tool(self, message: ChatCompletionMessage) -> None:
+        tool_answer = {
+            "role": "tool",
+            "content": "",
+            "tool_answer": self.tools[function_name].run_tool(**arguments),
+            "tool_name": function_name,
+            "tool_call_id": tool_call.id,
+        }
+        
+        self.history.append(tool_call_dict)
+        self.history.append(tool_answer)
+        return [tool_call_dict, tool_answer]
+    
+    def chat_with_tool(self, message: ChatCompletionMessage) -> list[dict]:
         """Send the user message to the model, handle tools, and update history.
 
         The provided `message` is appended to the internal history and the
@@ -184,34 +191,31 @@ class BaseAssistant:
         """
         # Append the user message to the shared history attribute
         self.history.append({"role": "user", "content": message})
+        new_messages = [{"role": "user", "content": message}]
+
         messages = [{"role": "system", "content": self.system_message}, *self.history]
         response = self.openai.chat.completions.create(model=self.model, messages=messages, tools=self.tool_dicts)  # type: ignore
 
         if response.choices[0].finish_reason == "tool_calls":
-            self.handle_tools(response.choices[0].message)
+            new_messages.extend(self.handle_tools(response.choices[0].message))
         else:
+            new_messages.append({"role": "assistant", "content": response.choices[0].message.content}) 
             self.history.append({"role": "assistant", "content": response.choices[0].message.content})
+        return new_messages
 
-    def render_answer(self, message: dict) -> None:
-        """Render a chat message to the Streamlit UI.
+    def add_tools_to_session_state(self) -> None:
+        """Add the assistant's tools to Streamlit session state for UI access.
 
-        Depending on the message role this will either render plain text
-        (for assistant/user roles) or delegate rendering to the tool
-        implementation (for tool role messages).
-
-        Args:
-            message (dict): A message dictionary from `self.history` with
-                at least a ``role`` key. Tool messages are expected to
-                include ``tool_name`` and ``tool_answer`` keys.
+        This method adds the assistant's tool instances to `st.session_state`
+        under the "tools" key, allowing Streamlit components to access and
+        utilize the tools for rendering and interaction.
 
         Returns:
-            None
+            None: The function modifies `st.session_state` in-place.
         """
-        if message["role"] in ("assistant", "user"):
-            st.markdown(message["content"])
-        if message["role"] == "tool":
-            tool = self.tools[message["tool_name"]]
-            tool.render_answer(message["tool_answer"])
+        for tool_name, tool in self.tools.items():
+            if tool_name not in st.session_state["tools"].keys():
+                st.session_state["tools"][tool_name] = tool
 
     def render_pinned_object(self, pinned_object: dict) -> None:
         """Render a pinned object using the originating tool's renderer.

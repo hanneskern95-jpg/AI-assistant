@@ -80,7 +80,6 @@ def create_tools(list_of_loaded_groups: list[str], **kwargs: object) -> dict[str
         (``tool.tool_dict['name']``) to the initialized ``Tool``
         instance.
     """
-
     initialized_objects: dict[str, Tool] = {}
     for cls in registry:
         if "all" not in list_of_loaded_groups and (not hasattr(cls, "group") or cls.group not in list_of_loaded_groups):

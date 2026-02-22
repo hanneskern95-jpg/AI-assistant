@@ -36,7 +36,8 @@ class MasterAssistant(BaseAssistant):
             Always return the tool's output in your response when you call a tool."""
 
         self.openai = OpenAI()
-        self.all_tools = create_tools(list_of_loaded_groups=["all"], model=MODEL_SEARCH, openai=self.openai)  # type: ignore
-        self.tool_loader = ToolLoader(self.all_tools)
+        self.tool_loader = ToolLoader() # initialize with empty tools, we update it right after creating the tools.
+        self.all_tools = create_tools(list_of_loaded_groups=["all"], model=MODEL_SEARCH, openai=self.openai, tool_loader = self.tool_loader)  # type: ignore
+        self.tool_loader.update_tools(self.all_tools)
         super().__init__(tool_loader=self.tool_loader, list_of_loaded_groups=["general"], system_message=self.system_message, model=MODEL)
 

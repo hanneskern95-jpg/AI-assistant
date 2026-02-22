@@ -110,26 +110,52 @@ def show_chat() -> None:
                     prompt = _get_audio_input(language_tag)
 
         if prompt:
-            st.session_state.chat_assistant.chat_with_tool(prompt)
+            st.session_state["full_history"].extend(st.session_state.chat_assistant.chat_with_tool(prompt))
 
         with placeholder:
-            messages_to_display = [message for message in st.session_state.chat_assistant.history if message["role"] in ["user", "assistant", "tool"] and "tool_calls" not in message]
+            messages_to_display = [message for message in st.session_state.full_history if message["role"] in ["user", "assistant", "tool"] and "tool_calls" not in message]
             for message in messages_to_display:
                 with st.chat_message(message["role"]):
-                    st.session_state.chat_assistant.render_answer(message)
+                    if message["role"] in ("assistant", "user"):
+                        st.markdown(message["content"])
+                    if message["role"] == "tool":
+                        tool = st.session_state["tools"][message["tool_name"]]
+                        tool.render_answer(message["tool_answer"])
 
     with pinned_object:
         if st.session_state["pinned_object"] is None:
             st.markdown("No pinned object yet. Pin an object from the chat!")
         else:
-            st.session_state.chat_assistant.render_pinned_object(st.session_state["pinned_object"])
+            pinned_object = st.session_state["pinned_object"]
+            tool = st.session_state["tools"][pinned_object["function_name"]]
+            tool.render_pinned_object(pinned_object["AnswerDict"])
 
 
-if __name__ == "__main__":
+def initialize_session_state() -> None:
+    """Initialize Streamlit session state variables.
+
+    This function sets up the necessary session state variables for the
+    chat assistant application. It creates a `MasterAssistant` instance
+    and stores it under both `chat_assistant` and `master_assistant`
+    keys, initializes an empty list for `full_history`, sets
+    `pinned_object` to `None`, and defaults `input_mode` to `"text"`.
+
+    Returns:
+        None: Session state is modified in-place.
+    """
+    if "tools" not in st.session_state:
+        st.session_state["tools"] = {}
     if "chat_assistant" not in st.session_state:
-        st.session_state["chat_assistant"] = MasterAssistant()
+        master_assistant = MasterAssistant()
+        st.session_state["chat_assistant"] = master_assistant
+        st.session_state["master_assistant"] = master_assistant
     if "pinned_object" not in st.session_state:
         st.session_state["pinned_object"] = None
+    if "full_history" not in st.session_state:
+        st.session_state["full_history"] = []
     if "input_mode" not in st.session_state:
         st.session_state["input_mode"] = "text"
+
+if __name__ == "__main__":
+    initialize_session_state()
     show_chat()

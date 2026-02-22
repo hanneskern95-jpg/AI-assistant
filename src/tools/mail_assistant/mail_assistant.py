@@ -18,4 +18,3 @@ class MailAssistant(BaseAssistant):
         You are perfectly professional and prefer to not engage in small talk. Nutch the user to use your email related tools or switch back to the main assistant."""
 
         super().__init__(list_of_loaded_groups=["email", "sub_assistant"], tool_loader=tool_loader, system_message=self.system_message)
-        print(self.tools.keys())

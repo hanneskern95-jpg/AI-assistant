@@ -171,6 +171,14 @@ class BaseAssistant:
         
         self.history.append(tool_call_dict)
         self.history.append(tool_answer)
+
+        if (tool_answer["tool_answer"].get("is_mode_switcher", False) and tool_answer["tool_answer"].get("carry_over_tool_calls", False)):
+            if tool_answer["tool_answer"].get("switches_to", "") not in st.session_state:
+                st.error(f"Assistant switched to {tool_answer['tool_answer'].get('switches_to', '')} but no such assistant found in session state.")
+                return [tool_call_dict, tool_answer]
+            st.session_state[tool_answer["tool_answer"].get("switches_to", "")].history.append(tool_call_dict)
+            st.session_state[tool_answer["tool_answer"].get("switches_to", "")].history.append(tool_answer)
+
         return [tool_call_dict, tool_answer]
     
     def chat_with_tool(self, message: ChatCompletionMessage) -> list[dict]:
@@ -216,17 +224,3 @@ class BaseAssistant:
         for tool_name, tool in self.tools.items():
             if tool_name not in st.session_state["tools"].keys():
                 st.session_state["tools"][tool_name] = tool
-
-    def render_pinned_object(self, pinned_object: dict) -> None:
-        """Render a pinned object using the originating tool's renderer.
-
-        Args:
-            pinned_object (dict): A pinned object structure containing at
-                minimum ``function_name`` and ``AnswerDict`` keys produced
-                by a previous tool call.
-
-        Returns:
-            None
-        """
-        tool = self.tools[pinned_object["function_name"]]
-        tool.render_pinned_object(pinned_object["AnswerDict"])

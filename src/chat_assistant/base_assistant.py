@@ -224,3 +224,8 @@ class BaseAssistant:
         for tool_name, tool in self.tools.items():
             if tool_name not in st.session_state["tools"].keys():
                 st.session_state["tools"][tool_name] = tool
+
+    def close(self) -> None:
+        """Perform any necessary cleanup when switching assistants. The base assisstant does not have any cloing tasks, so the method simply returns.
+        However, child classes might have cleanup taks to do when switching assistants."""
+        return

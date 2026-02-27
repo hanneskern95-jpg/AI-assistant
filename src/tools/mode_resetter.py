@@ -44,6 +44,7 @@ class ModeResetter(Tool):
         }
 
     def run_tool(self, *args: object, **kwargs: object) -> ModeSwitcherDict:
+        st.session_state["chat_assistant"].close()
         st.session_state["chat_assistant"] = st.session_state["master_assistant"]
         return {
             "answer_str": "Switched back to standard assistant.",

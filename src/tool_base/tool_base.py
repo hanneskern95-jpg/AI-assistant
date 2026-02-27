@@ -123,3 +123,20 @@ class Tool:
             "function_name": self.tool_dict["name"],
             "AnswerDict": answer,
         }
+
+    def update_attributes(self, **kwargs: object) -> None:
+        """Update the tool's attributes with the provided keyword arguments.
+
+        This helper allows tools to receive updates to their internal
+        state or dependencies (for example, a shared API client) after
+        initialization.
+
+        Args:
+            kwargs (dict): Key-value pairs of attributes to update on the tool instance.
+
+        Returns:
+            None
+        """
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)

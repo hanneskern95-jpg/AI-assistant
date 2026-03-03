@@ -10,6 +10,8 @@ from email.header import decode_header
 from tool_base import AnswerDict, Tool
 from ai_utils import get_response_text_from_chatcompletion
 
+from bs4 import BeautifulSoup
+
 class MailAnswer(AnswerDict):
     answer_str: str
     list_of_mails: list | None
@@ -38,8 +40,8 @@ class MailSummarizerTool(Tool):
                         },
                         "description": "The number of days to fetch emails for summarization or answering the user's question."
                         "In the format [from, to], where 'from' is how many days ago to start the summary and 'to' is how many days ago to end the summary."
-                        "For example, [7, 0] would summarize emails from the last week."
-                        "Default is [30, 0], which summarizes emails from the last month.",
+                        "For example, [30, 0] would summarize emails from the last month."
+                        "Default is [7, 0], which summarizes emails from the last week.",
                     },
                     "question": {
                         "type": "string",
@@ -101,31 +103,60 @@ class MailSummarizerTool(Tool):
             "list_of_mails": list_of_emails,
         }
 
+    def extract_text_from_html(self, html):
+        soup = BeautifulSoup(html, "lxml")
+
+        # Remove junk
+        for tag in soup(["script", "style", "img", "noscript"]):
+            tag.decompose()
+
+        text = soup.get_text(separator="\n", strip=True)
+        return text
+
+    def decode_main_part(self, part):
+        html_body = None
+        text_body = None
+
+        if part.get_content_disposition() == "attachment":
+            return None, None
+
+        content_type = part.get_content_type()
+        payload = part.get_payload(decode=True)
+        charset = part.get_content_charset() or "utf-8"
+
+        if not payload:
+            return None, None
+
+        decoded = payload.decode(charset, errors="replace")
+
+        if content_type == "text/html":
+            html_body = decoded
+
+        elif content_type == "text/plain":
+            text_body = decoded
+        
+        return html_body, text_body
+
     def get_body(self, msg):
+        html_body = ""
+        text_body = ""
+
         if msg.is_multipart():
             for part in msg.walk():
-                # Skip attachments
-                if part.get_content_disposition() == "attachment":
-                    continue
-
-                # Prefer plain text
-                if part.get_content_type() == "text/plain":
-                    payload = part.get_payload(decode=True)
-                    charset = part.get_content_charset()
-
-                    if charset:
-                        return payload.decode(charset, errors="replace")
-                    else:
-                        return payload.decode(errors="replace")
+                html_body_part, text_body_part = self.decode_main_part(part)  
+                if html_body_part:
+                    html_body += html_body_part
+                if text_body_part:
+                    text_body += text_body_part
 
         else:
-            payload = msg.get_payload(decode=True)
-            charset = msg.get_content_charset()
+            html_body, text_body = self.decode_main_part(msg)
 
-            if charset:
-                return payload.decode(charset, errors="replace")
-            else:
-                return payload.decode(errors="replace")
+        # Prefer HTML if available
+        if html_body:
+            return self.extract_text_from_html(html_body)
+        if text_body:
+            return text_body.strip()
 
         return "[No readable body]"
     

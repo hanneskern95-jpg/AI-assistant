@@ -1,20 +1,19 @@
     
-from datetime import datetime, timedelta
 import json
+import streamlit as st
 from openai import OpenAI
 
 import imaplib
-import email
-from email.header import decode_header
 
 from tool_base import AnswerDict, Tool
 from ai_utils import get_response_text_from_chatcompletion
 
-from bs4 import BeautifulSoup
+from .email_utils import fetch_emails, MailDict, render_mail
+
 
 class MailAnswer(AnswerDict):
     answer_str: str
-    list_of_mails: list | None
+    list_of_mails: list[MailDict] | None
 
 
 class MailSummarizerTool(Tool):
@@ -80,7 +79,7 @@ class MailSummarizerTool(Tool):
         assert isinstance(days_from_to, list) and len(days_from_to) == 2 and all(isinstance(x, int) for x in days_from_to)
 
         self.mail.select("inbox")
-        list_of_emails = self.fetch_emails(days_from_to)
+        list_of_emails = fetch_emails(days_from_to, self.mail)
         if question is not None and question.strip() != "":
             task = "Answer the following question about the user's emails, using the attached list of emails as context: " + question
         else:
@@ -102,114 +101,10 @@ class MailSummarizerTool(Tool):
             "answer_str": response_text,
             "list_of_mails": list_of_emails,
         }
-
-    def extract_text_from_html(self, html):
-        soup = BeautifulSoup(html, "lxml")
-
-        # Remove junk
-        for tag in soup(["script", "style", "img", "noscript"]):
-            tag.decompose()
-
-        text = soup.get_text(separator="\n", strip=True)
-        return text
-
-    def decode_main_part(self, part):
-        html_body = None
-        text_body = None
-
-        if part.get_content_disposition() == "attachment":
-            return None, None
-
-        content_type = part.get_content_type()
-        payload = part.get_payload(decode=True)
-        charset = part.get_content_charset() or "utf-8"
-
-        if not payload:
-            return None, None
-
-        decoded = payload.decode(charset, errors="replace")
-
-        if content_type == "text/html":
-            html_body = decoded
-
-        elif content_type == "text/plain":
-            text_body = decoded
-        
-        return html_body, text_body
-
-    def get_body(self, msg):
-        html_body = ""
-        text_body = ""
-
-        if msg.is_multipart():
-            for part in msg.walk():
-                html_body_part, text_body_part = self.decode_main_part(part)  
-                if html_body_part:
-                    html_body += html_body_part
-                if text_body_part:
-                    text_body += text_body_part
-
-        else:
-            html_body, text_body = self.decode_main_part(msg)
-
-        # Prefer HTML if available
-        if html_body:
-            return self.extract_text_from_html(html_body)
-        if text_body:
-            return text_body.strip()
-
-        return "[No readable body]"
     
-
-    def decode_header_value(self, value):
-        if value is None:
-            return ""
-
-        parts = decode_header(value)
-        decoded = ""
-
-        for part, charset in parts:
-            if isinstance(part, bytes):
-                decoded += part.decode(charset or "utf-8", errors="replace")
-            else:
-                decoded += part
-
-        return decoded
-
-
-    def fetch_emails(self, days_from_to: list[int]) -> list:
-        """Fetch the user's emails from the specified time horizon.
-
-        This method uses the IMAP protocol to fetch the user's emails from their email server, based on the provided time horizon.
-
-        Args:
-            days_from_to (list[int]): A list of two integers specifying the time horizon for fetching emails, in the format [from, to].
-        """
-        date_from = (datetime.now() - timedelta(days=days_from_to[0])).strftime("%d-%b-%Y")
-        date_to = (datetime.now()-timedelta(days=days_from_to[1]-1)).strftime("%d-%b-%Y")
-        if self.mail is None:
-            raise ValueError("Mail object is not initialized.")
-        status, messages = self.mail.search(None, f'(SINCE "{date_from}" BEFORE "{date_to}")')
-        email_list = []
-        if status != "OK":
-            raise ValueError(f"Failed to fetch emails: {status}")
-        for msg_id in messages[0].split():
-            status, raw_email = self.mail.fetch(msg_id, "(RFC822)")
-            if status != "OK":
-                raise ValueError(f"Failed to fetch email {msg_id}: {status}")
-            msg = email.message_from_bytes(raw_email[0][1])
-
-            sender = msg["From"]
-            subject = self.decode_header_value(msg["Subject"])
-            date_sent = self.decode_header_value(msg["Date"])
-            body = self.get_body(msg)
-            if len(body) > 1000:
-                body = body[:1000] + "... [truncated]"
-            email_list.append({
-                "sender": sender,
-                "subject": subject,
-                "date_sent": date_sent,
-                "body": body,
-            })
-
-        return email_list
+    def render_answer(self, answer: MailAnswer) -> None:
+        st.markdown(answer["answer_str"])
+        if answer["list_of_mails"]:
+            with st.expander("Raw Emails:"):
+                for mail in answer["list_of_mails"]:
+                    render_mail(mail)

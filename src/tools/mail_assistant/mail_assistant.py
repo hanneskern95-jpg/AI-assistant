@@ -7,6 +7,8 @@ import os
 
 from dotenv import load_dotenv
 
+from .mail_assistant_tools.email_utils import truncate_email_list
+
 
 class MailAssistant(BaseAssistant):
     """A specialized assistant for handling email-related tasks.
@@ -36,6 +38,21 @@ class MailAssistant(BaseAssistant):
             self.tools[tool_name].update_attributes(mail=self.mail)
 
     
+    def handle_tools(self, message):
+        """Emails are to long to simply add to the contex, but we still want them in the streamlithistory for the user to see.
+        Thus, we return the full list of emails in this function, but go through self.history and truncate new emails, if any have been added.
+        """
+        new_messages_for_chat = super().handle_tools(message)
+        
+        if self.history[-1]["role"] == "tool":
+            tool_answer = self.history[-1]["tool_answer"]
+            if "list_of_emails" in tool_answer and tool_answer["list_of_mails"]:
+                tool_answer["list_of_mails"] = truncate_email_list(tool_answer["list_of_mails"], max_length=200)
+        return new_messages_for_chat
+            
+
+
+
     def close(self) -> None:
         self.mail.logout()
         

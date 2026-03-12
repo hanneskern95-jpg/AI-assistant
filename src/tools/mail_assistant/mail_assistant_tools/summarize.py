@@ -8,7 +8,7 @@ import imaplib
 from tool_base import AnswerDict, Tool
 from ai_utils import get_response_text_from_chatcompletion
 
-from .email_utils import fetch_emails, MailDict, render_mail
+from .email_utils import fetch_emails, MailDict, render_mail, truncate_email_list
 
 
 class MailAnswer(AnswerDict):
@@ -80,6 +80,7 @@ class MailSummarizerTool(Tool):
 
         self.mail.select("inbox")
         list_of_emails = fetch_emails(days_from_to, self.mail)
+        list_of_emails_for_model = truncate_email_list(list_of_emails, max_length=2000)
         if question is not None and question.strip() != "":
             task = "Answer the following question about the user's emails, using the attached list of emails as context: " + question
         else:
@@ -87,7 +88,7 @@ class MailSummarizerTool(Tool):
 
         task_json = {
             "task": task,
-            "list_of_emails": list_of_emails,
+            "list_of_emails": list_of_emails_for_model,
         }
 
         messages = [

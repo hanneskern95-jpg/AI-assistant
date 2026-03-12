@@ -123,8 +123,6 @@ def fetch_emails(days_from_to: list[int], mail) -> list[MailDict]:
         subject = decode_header_value(msg["Subject"])
         date_sent = decode_header_value(msg["Date"])
         body = get_body(msg)
-        if len(body) > 1000:
-            body = body[:1000] + "... [truncated]"
         email_list.append({
             "sender": sender,
             "subject": subject,
@@ -133,3 +131,35 @@ def fetch_emails(days_from_to: list[int], mail) -> list[MailDict]:
         })
 
     return email_list
+
+def truncate_email(email_dict: MailDict, max_length: int = 1000) -> MailDict:
+    """Truncate the body of an email to a specified maximum length.
+
+    This function is used to ensure that the body of an email does not exceed a certain length, which can be useful for display purposes or when processing emails with limited resources.
+
+    Args:
+        email_dict (MailDict): A dictionary representing an email, containing keys such as "sender", "subject", "date_sent", and "body".
+        max_length (int): The maximum allowed length for the email body. If the body exceeds this length, it will be truncated and appended with an ellipsis.
+
+    Returns:
+        MailDict: A new MailDict with the body truncated if it exceeded the specified maximum length.
+    """
+    if len(email_dict["body"]) > max_length:
+        new_email_dict = email_dict.copy()
+        new_email_dict["body"] = new_email_dict["body"][:max_length] + "... [truncated]"
+        return new_email_dict
+    return email_dict
+
+def truncate_email_list(email_list: list[MailDict], max_length: int = 1000) -> list[MailDict]:
+    """Truncate the bodies of a list of emails to a specified maximum length.
+
+    This function applies the `truncate_email` function to each email in the provided list, ensuring that the body of each email does not exceed the specified maximum length.
+
+    Args:
+        email_list (list[MailDict]): A list of MailDict objects representing emails.
+        max_length (int): The maximum allowed length for the email bodies. If any body exceeds this length, it will be truncated and appended with an ellipsis.
+
+    Returns:
+        list[MailDict]: A new list of MailDict objects with the bodies truncated if they exceeded the specified maximum length.
+    """
+    return [truncate_email(email, max_length) for email in email_list]

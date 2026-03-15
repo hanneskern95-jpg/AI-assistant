@@ -59,6 +59,18 @@ class MailSummarizerTool(Tool):
         self._model = model
         self._openai = openai
         self.mail: imaplib.IMAP4_SSL | None = None
+        self.list_of_mails: list[MailDict] = None
+
+    def add_new_mails(self, new_mails: list[MailDict]) -> None:
+        """Add new mails to the list of mails, avoiding duplicates based on the mail's UID."""
+        if self.list_of_mails is None:
+            self.list_of_mails = new_mails
+            return
+        
+        existing_uids = {mail["uid"] for mail in self.list_of_mails}
+        for mail in new_mails:
+            if mail["uid"] not in existing_uids:
+                self.list_of_mails.append(mail)
 
     def run_tool(self, *args: object, **kwargs: object) -> MailAnswer:
         """Summarize the user's emails or answer a specific question about them.
@@ -81,6 +93,9 @@ class MailSummarizerTool(Tool):
         self.mail.select("inbox")
         list_of_emails = fetch_emails(days_from_to, self.mail)
         list_of_emails_for_model = truncate_email_list(list_of_emails, max_length=2000)
+
+        self.add_new_mails(list_of_emails)
+
         if question is not None and question.strip() != "":
             task = "Answer the following question about the user's emails, using the attached list of emails as context: " + question
         else:

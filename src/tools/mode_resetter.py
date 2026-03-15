@@ -24,7 +24,7 @@ class ModeResetter(Tool):
         self.tool_dict = {
             "type": "function",
             "name": "switch_back_to_master_mode",
-            "description": "Switches back to the master assistant mode. The user might also call the master mode 'standard assistant'",
+            "description": "Switches back to the master assistant mode. The user might also call the master mode 'standard assistant' or 'main mode'.",
             "parameters": {
                 "type": "object",
                 "properties": {

@@ -168,16 +168,23 @@ class BaseAssistant:
             "tool_name": function_name,
             "tool_call_id": tool_call.id,
         }
+
+        # While I prefer to keep the tool_answer in a seperate field, the chat Assistant seems unable to handle that. So for the purpose of chatting, we move the tool_answer to content. 
+        # We also use json to turn the dictionary into a string.
+        # For rendering tools, we keep the information in tool_answer and as dictionary in the overall history of streamlit.
+        tool_answer_for_history = tool_answer.copy()
+        tool_answer_for_history["tool_answer"] = ""
+        tool_answer_for_history["content"] = json.dumps(tool_answer["tool_answer"])
         
         self.history.append(tool_call_dict)
-        self.history.append(tool_answer)
+        self.history.append(tool_answer_for_history)
 
         if (tool_answer["tool_answer"].get("is_mode_switcher", False) and tool_answer["tool_answer"].get("carry_over_tool_calls", False)):
             if tool_answer["tool_answer"].get("switches_to", "") not in st.session_state:
                 st.error(f"Assistant switched to {tool_answer['tool_answer'].get('switches_to', '')} but no such assistant found in session state.")
                 return [tool_call_dict, tool_answer]
             st.session_state[tool_answer["tool_answer"].get("switches_to", "")].history.append(tool_call_dict)
-            st.session_state[tool_answer["tool_answer"].get("switches_to", "")].history.append(tool_answer)
+            st.session_state[tool_answer["tool_answer"].get("switches_to", "")].history.append(tool_answer_for_history)
 
         return [tool_call_dict, tool_answer]
     

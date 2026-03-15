@@ -32,10 +32,12 @@ class MailAssistant(BaseAssistant):
         self.mail = imaplib.IMAP4_SSL("imap." + os.getenv("EMAIL_DOMAIN", ""), 993)
         self.mail.login(os.getenv("EMAIL_USER", ""), os.getenv("EMAIL_PASSWORD", ""))
 
+        self.list_of_mails = []
+
         # give mail object to the tools that need it
-        tools_needing_email_object = ["summarize_emails"]
+        tools_needing_email_object = ["summarize_emails", "delete_emails"]
         for tool_name in tools_needing_email_object:
-            self.tools[tool_name].update_attributes(mail=self.mail)
+            self.tools[tool_name].update_attributes(mail=self.mail, list_of_mails=self.list_of_mails)
 
     
     def handle_tools(self, message):
@@ -46,7 +48,7 @@ class MailAssistant(BaseAssistant):
         
         if self.history[-1]["role"] == "tool":
             tool_answer = self.history[-1]["tool_answer"]
-            if "list_of_emails" in tool_answer and tool_answer["list_of_mails"]:
+            if "list_of_mails" in tool_answer and tool_answer["list_of_mails"] is not None:
                 tool_answer["list_of_mails"] = truncate_email_list(tool_answer["list_of_mails"], max_length=200)
         return new_messages_for_chat
             

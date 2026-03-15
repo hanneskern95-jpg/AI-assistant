@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 
 
 class MailDict(TypedDict):
+    uid: str
     sender: str
     subject: str
     date_sent: str
@@ -109,12 +110,12 @@ def fetch_emails(days_from_to: list[int], mail) -> list[MailDict]:
     date_to = (datetime.now()-timedelta(days=days_from_to[1]-1)).strftime("%d-%b-%Y")
     if mail is None:
         raise ValueError("Mail object is not initialized.")
-    status, messages = mail.search(None, f'(SINCE "{date_from}" BEFORE "{date_to}")')
+    status, messages = mail.uid('search', None, f'(SINCE "{date_from}" BEFORE "{date_to}")')
     email_list = []
     if status != "OK":
         raise ValueError(f"Failed to fetch emails: {status}")
     for msg_id in messages[0].split():
-        status, raw_email = mail.fetch(msg_id, "(RFC822)")
+        status, raw_email = mail.uid('fetch', msg_id, "(RFC822)")
         if status != "OK":
             raise ValueError(f"Failed to fetch email {msg_id}: {status}")
         msg = email.message_from_bytes(raw_email[0][1])
@@ -124,6 +125,7 @@ def fetch_emails(days_from_to: list[int], mail) -> list[MailDict]:
         date_sent = decode_header_value(msg["Date"])
         body = get_body(msg)
         email_list.append({
+            "uid": msg_id.decode(),
             "sender": sender,
             "subject": subject,
             "date_sent": date_sent,

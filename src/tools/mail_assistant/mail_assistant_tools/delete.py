@@ -1,3 +1,7 @@
+import os
+
+from dotenv import load_dotenv
+
 import imaplib
 import streamlit as st
 import streamlit_notify as stn
@@ -6,9 +10,6 @@ from openai import OpenAI
 from tool_base import Tool, AnswerDict
 
 from .email_utils import MailDict, render_mail
-
-
-#TODO: A seperate AI call to find the uids from a description and self.list_of_mails.
 
 
 class MailDeletionAnswer(AnswerDict):
@@ -44,10 +45,14 @@ class MailDeletionTool(Tool):
                 "additionalProperties": False,
             },
         }
+
+        load_dotenv(override=True)
+
         self._model = model
         self._openai = openai
         self.mail: imaplib.IMAP4_SSL | None = None
         self.list_of_mails: list[MailDict] | None = None
+        self.trashcan_name = os.getenv("TRASHCAN_FOLDER", "Papierkorb")
 
     def run_tool(self, *args: object, **kwargs: object) -> MailDeletionAnswer:
         """Display emails for deletion.
@@ -61,7 +66,6 @@ class MailDeletionTool(Tool):
 
         # check arguments
         uids = kwargs["uids"]
-        print(uids)
 
         assert isinstance(uids, list) and all(isinstance(uid, str) for uid in uids)
 
@@ -78,7 +82,7 @@ class MailDeletionTool(Tool):
         for mail in answer["list_of_mails"]:
             checkbox_column, mail_column = st.columns([0.1, 0.9])
             with mail_column:
-                render_mail(mail)
+                render_mail(mail, answerable=False)
             with checkbox_column:
                 marks_for_deletion[mail["uid"]] = st.checkbox("Delete", key=mail["uid"], value=True)
         st.button("Confirm Deletion", on_click=self.delete_mails, args=(marks_for_deletion,))
@@ -87,6 +91,7 @@ class MailDeletionTool(Tool):
     def delete_mails(self, marks: dict[str, bool]) -> None:
         uids_to_delete = [uid for uid, should_delete in marks.items() if should_delete]
         for uid in uids_to_delete:
-            self.mail.uid("copy", uid, "Papierkorb")
+            self.mail.uid("copy", uid, self.trashcan_name)
             self.mail.uid("STORE", uid, "+FLAGS", "\\Deleted")
         self.mail.expunge()
+        stn.toast(f"Deleted {len(uids_to_delete)} mails.", duration=3, icon="✅")

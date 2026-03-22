@@ -1,11 +1,21 @@
-from datetime import datetime, timedelta
+import os
+import uuid
+from dotenv import load_dotenv
+
+from datetime import datetime, timedelta, timezone, UTC
 import email
 from typing import TypedDict
+import imaplib
 
 import streamlit as st
+import streamlit_notify as stn
 
 import email
 from email.header import decode_header
+
+import smtplib
+from email.mime.text import MIMEText
+from email.utils import formataddr, formatdate, make_msgid
 
 from bs4 import BeautifulSoup
 
@@ -18,11 +28,19 @@ class MailDict(TypedDict):
     body: str
 
 
-def render_mail(mail: MailDict) -> None:
+def render_mail(mail: MailDict, sender_mail: smtplib.SMTP | None = None, mail_object: imaplib.IMAP4_SSL | None = None, answerable: bool = True) -> None:
     with st.expander(f"Email from {mail['sender']} - {mail['subject']}"):
         st.markdown(f"**Date Sent:** {mail['date_sent']}")
         st.markdown(f"**Body:** {mail['body']}")
-
+        if answerable:
+            with st.expander("Answer"):
+                unique_id = uuid.uuid4().hex
+                st.text_area("Your answer:", key=f"answer_{mail['uid']}_{unique_id}")
+                if st.button("Send Answer", key=f"send_{mail['uid']}_{unique_id}"):
+                    answer = st.session_state[f"answer_{mail['uid']}_{unique_id}"]
+                    send_mail(subject=f"Re: {mail['subject']}", body=answer, to_email=mail["sender"], mail=mail_object, sender_mail=sender_mail)
+                    stn.toast("Answer sent!", duration=3, icon="✅")
+                    stn.notify()
 
 def extract_text_from_html(html):
     soup = BeautifulSoup(html, "html.parser")
@@ -98,19 +116,28 @@ def decode_header_value(value):
     return decoded
 
 
-def fetch_emails(days_from_to: list[int], mail) -> list[MailDict]:
-    """Fetch the user's emails from the specified time horizon.
+def fetch_emails(days_from_to: list[int] | None = None, query: str | None = None, mail: imaplib.IMAP4_SSL | None = None) -> list[MailDict]:
+    """Fetch the user's emails from the specified time horizon or using a custom IMAP query.
 
-    This method uses the IMAP protocol to fetch the user's emails from their email server, based on the provided time horizon.
+    This method uses the IMAP protocol to fetch the user's emails from their email server, based on the provided time horizon or query.
 
     Args:
-        days_from_to (list[int]): A list of two integers specifying the time horizon for fetching emails, in the format [from, to].
+        days_from_to (list[int] | None): A list of two integers specifying the time horizon for fetching emails, in the format [from, to]. If None, query must be provided.
+        query (str | None): A custom IMAP search query. If None, days_from_to must be provided.
+        mail: The IMAP mail object.
     """
-    date_from = (datetime.now() - timedelta(days=days_from_to[0])).strftime("%d-%b-%Y")
-    date_to = (datetime.now()-timedelta(days=days_from_to[1]-1)).strftime("%d-%b-%Y")
+    if query is not None:
+        search_query = query
+    elif days_from_to is not None:
+        date_from = (datetime.now() - timedelta(days=days_from_to[0])).strftime("%d-%b-%Y")
+        date_to = (datetime.now()-timedelta(days=days_from_to[1]-1)).strftime("%d-%b-%Y")
+        search_query = f'(SINCE "{date_from}" BEFORE "{date_to}")'
+    else:
+        raise ValueError("Either days_from_to or query must be provided.")
+    
     if mail is None:
         raise ValueError("Mail object is not initialized.")
-    status, messages = mail.uid('search', None, f'(SINCE "{date_from}" BEFORE "{date_to}")')
+    status, messages = mail.uid('search', None, search_query)
     email_list = []
     if status != "OK":
         raise ValueError(f"Failed to fetch emails: {status}")
@@ -165,3 +192,31 @@ def truncate_email_list(email_list: list[MailDict], max_length: int = 1000) -> l
         list[MailDict]: A new list of MailDict objects with the bodies truncated if they exceeded the specified maximum length.
     """
     return [truncate_email(email, max_length) for email in email_list]
+
+def send_mail(subject: str, body: str, to_email: str, mail: imaplib.IMAP4_SSL, sender_mail) -> None:
+    """Send an email using the SMTP protocol.
+
+    This function sends an email with the specified subject and body to the given recipient email address. It uses the SMTP protocol to connect to the email server and send the email.
+
+    Args:
+        subject (str): The subject of the email.
+        body (str): The body content of the email.
+        to_email (str): The recipient's email address.
+    """
+    load_dotenv(override=True)
+
+    #create mail
+    msg = MIMEText(body)
+    msg["Subject"] = subject
+    msg["From"] = formataddr((os.getenv("EMAIL_NAME"), os.getenv("EMAIL_USER")))
+    msg["To"] = to_email
+
+    msg["Date"] = formatdate(localtime=True)
+
+    msg["Message-ID"] = make_msgid()
+
+    # Send email
+    sender_mail.send_message(msg)
+
+    #addmail to sent folder
+    mail.append("Gesendet", "", imaplib.Time2Internaldate(datetime.now(UTC)), msg.as_bytes())

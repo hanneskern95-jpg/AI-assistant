@@ -4,6 +4,7 @@ import streamlit as st
 from openai import OpenAI
 
 import imaplib
+import smtplib
 
 from tool_base import AnswerDict, Tool
 from ai_utils import get_response_text_from_chatcompletion
@@ -59,6 +60,7 @@ class MailSummarizerTool(Tool):
         self._model = model
         self._openai = openai
         self.mail: imaplib.IMAP4_SSL | None = None
+        self.sender_mail: smtplib.SMTP | None = None
         self.list_of_mails: list[MailDict] = None
 
     def add_new_mails(self, new_mails: list[MailDict]) -> None:
@@ -91,7 +93,7 @@ class MailSummarizerTool(Tool):
         assert isinstance(days_from_to, list) and len(days_from_to) == 2 and all(isinstance(x, int) for x in days_from_to)
 
         self.mail.select("inbox")
-        list_of_emails = fetch_emails(days_from_to, self.mail)
+        list_of_emails = fetch_emails(days_from_to = days_from_to, query=None, mail=self.mail)
         list_of_emails_for_model = truncate_email_list(list_of_emails, max_length=2000)
 
         self.add_new_mails(list_of_emails)
@@ -123,4 +125,4 @@ class MailSummarizerTool(Tool):
         if answer["list_of_mails"]:
             with st.expander("Raw Emails:"):
                 for mail in answer["list_of_mails"]:
-                    render_mail(mail)
+                    render_mail(mail, sender_mail=self.sender_mail, mail_object=self.mail)

@@ -2,6 +2,7 @@ from chat_assistant.base_assistant import BaseAssistant
 from tool_loader.loader import ToolLoader
 
 import imaplib
+import smtplib
 
 import os
 
@@ -31,13 +32,16 @@ class MailAssistant(BaseAssistant):
 
         self.mail = imaplib.IMAP4_SSL("imap." + os.getenv("EMAIL_DOMAIN", ""), 993)
         self.mail.login(os.getenv("EMAIL_USER", ""), os.getenv("EMAIL_PASSWORD", ""))
+        self.sender_mail = smtplib.SMTP("smtp.web.de", 587)
+        self.sender_mail.starttls()
+        self.sender_mail.login(os.getenv("EMAIL_USER", ""), os.getenv("EMAIL_PASSWORD", ""))
 
         self.list_of_mails = []
 
         # give mail object to the tools that need it
-        tools_needing_email_object = ["summarize_emails", "delete_emails"]
+        tools_needing_email_object = ["summarize_emails", "delete_emails", "search_emails", "suggest_email"]
         for tool_name in tools_needing_email_object:
-            self.tools[tool_name].update_attributes(mail=self.mail, list_of_mails=self.list_of_mails)
+            self.tools[tool_name].update_attributes(mail=self.mail, list_of_mails=self.list_of_mails, sender_mail=self.sender_mail)
 
     
     def handle_tools(self, message):
